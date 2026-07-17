@@ -8,6 +8,9 @@ export class GitHubStore {
   constructor(token) {
     this.token = token;
     this.canWrite = true;
+    // Кэш sha по путям: Contents API отдаёт свежую версию с задержкой,
+    // поэтому после записи запоминаем sha из ответа, а не перечитываем.
+    this.shaCache = new Map();
   }
 
   headers() {
@@ -39,40 +42,61 @@ export class GitHubStore {
     if (!res.ok) throw new Error(`GitHub: не удалось прочитать ${path} (${res.status})`);
     const data = await res.json();
     const bytes = b64decode(data.content.replace(/\n/g, ''));
+    if (!this.shaCache.has(path)) this.shaCache.set(path, data.sha);
     return { bytes, text: new TextDecoder().decode(bytes), sha: data.sha };
+  }
+
+  async currentSha(path) {
+    if (this.shaCache.has(path)) return this.shaCache.get(path);
+    const existing = await this.getFile(path);
+    return existing ? existing.sha : null;
   }
 
   // Записывает файл (создаёт или обновляет). content — Uint8Array или строка.
   async putFile(path, content, message) {
-    const existing = await this.getFile(path);
     const bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content;
-    const body = {
-      message,
-      content: b64encode(bytes),
-      branch: BRANCH,
+    const attempt = async (sha) => {
+      const body = { message, content: b64encode(bytes), branch: BRANCH };
+      if (sha) body.sha = sha;
+      return fetch(`${API}/repos/${OWNER}/${REPO}/contents/${path}`, {
+        method: 'PUT',
+        headers: { ...this.headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
     };
-    if (existing) body.sha = existing.sha;
-    const res = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${path}`, {
-      method: 'PUT',
-      headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    let res = await attempt(await this.currentSha(path));
+    if (res.status === 409 || res.status === 422) {
+      // sha устарел или отсутствовал — перечитываем и повторяем один раз
+      this.shaCache.delete(path);
+      const fresh = await this.getFile(path);
+      res = await attempt(fresh ? fresh.sha : null);
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(`GitHub: не удалось сохранить ${path} (${res.status}) ${err.message || ''}`);
     }
-    return res.json();
+    const data = await res.json();
+    this.shaCache.set(path, data.content.sha);
+    return data;
   }
 
   async deleteFile(path, message) {
-    const existing = await this.getFile(path);
-    if (!existing) return;
-    const res = await fetch(`${API}/repos/${OWNER}/${REPO}/contents/${path}`, {
+    const sha = await this.currentSha(path);
+    if (!sha) return;
+    const attempt = (s) => fetch(`${API}/repos/${OWNER}/${REPO}/contents/${path}`, {
       method: 'DELETE',
       headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, sha: existing.sha, branch: BRANCH }),
+      body: JSON.stringify({ message, sha: s, branch: BRANCH }),
     });
-    if (!res.ok) throw new Error(`GitHub: не удалось удалить ${path} (${res.status})`);
+    let res = await attempt(sha);
+    if (res.status === 409 || res.status === 422) {
+      this.shaCache.delete(path);
+      const fresh = await this.getFile(path);
+      if (!fresh) return;
+      res = await attempt(fresh.sha);
+    }
+    if (!res.ok && res.status !== 404) throw new Error(`GitHub: не удалось удалить ${path} (${res.status})`);
+    this.shaCache.delete(path);
   }
 }
 
