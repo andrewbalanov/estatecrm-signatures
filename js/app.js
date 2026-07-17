@@ -407,6 +407,8 @@ function openCropModal(srcUrl) {
   $('#modal-crop').classList.remove('hidden');
   const img = $('#crop-image');
   if (state.cropper) { state.cropper.destroy(); state.cropper = null; }
+  state.cropBaseZoom = null;
+  $('#crop-zoom').value = 1;
   img.src = srcUrl;
   state.cropper = new Cropper(img, {
     aspectRatio: 1,
@@ -415,16 +417,16 @@ function openCropModal(srcUrl) {
     autoCropArea: 1,
     background: false,
     guides: false,
-    ready() {
-      const data = state.cropper.getImageData();
-      state.cropBaseZoom = data.width / data.naturalWidth;
-      $('#crop-zoom').value = 1;
-    },
   });
 }
 
+// Базовый масштаб фиксируем при первом движении ползунка от фактического
+// состояния канвы — момент ready ненадёжен (модал ещё в раскладке).
 $('#crop-zoom').addEventListener('input', (e) => {
-  if (!state.cropper || !state.cropBaseZoom) return;
+  if (!state.cropper) return;
+  const cd = state.cropper.getCanvasData();
+  if (!cd.naturalWidth) return;
+  if (!state.cropBaseZoom) state.cropBaseZoom = cd.width / cd.naturalWidth;
   state.cropper.zoomTo(state.cropBaseZoom * parseFloat(e.target.value));
 });
 
