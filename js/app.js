@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=17';
-import * as cr from './crypto.js?v=17';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=17';
+import { BASE_URL } from './config.js?v=18';
+import * as cr from './crypto.js?v=18';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=18';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=17';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=17';
+} from './templates.js?v=18';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=18';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -204,7 +204,14 @@ $('#setpass-form').addEventListener('submit', async (e) => {
     if (!state.store || !state.store.canWrite) {
       throw new Error('Сохранение пароля недоступно — обратитесь к администратору.');
     }
-    await saveUsers(`Установлен пароль: ${me.displayName}`);
+    await mutateUsers(`Установлен пароль: ${me.displayName}`, (fresh) => {
+      const rec = fresh.users.find((u) => u.id === me.id);
+      if (!rec) throw new Error('Приглашение не найдено — запросите новую ссылку.');
+      rec.salt = me.salt;
+      rec.verifier = me.verifier;
+      rec.encDataKey = me.encDataKey;
+      delete rec.invite;
+    });
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
     history.replaceState(null, '', location.pathname + location.search);
     $('#setpass-p1').value = '';
@@ -313,9 +320,11 @@ async function tryLegacyTokenMigration() {
     const token = await cr.decryptString(userKey, legacy);
     const store = new GitHubStore(token);
     await store.validate();
-    state.usersDoc.encToken = await encryptObjForDoc(state.dataKey, token);
+    const encTokLegacy = await encryptObjForDoc(state.dataKey, token);
     state.store = store;
-    await saveUsers('Токен перенесён из локального хранилища администратора');
+    await mutateUsers('Токен перенесён из локального хранилища администратора', (fresh) => {
+      fresh.encToken = encTokLegacy;
+    });
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     toast('GitHub-токен перенесён в зашифрованное хранилище сервиса.');
   } catch (e) {
@@ -333,9 +342,11 @@ $('#token-save').addEventListener('click', async () => {
   try {
     const store = new GitHubStore(token);
     await store.validate();
-    state.usersDoc.encToken = await encryptObjForDoc(state.dataKey, token);
+    const encTokNew = await encryptObjForDoc(state.dataKey, token);
     state.store = store;
-    await saveUsers('Обновлён GitHub-токен сервиса');
+    await mutateUsers('Обновлён GitHub-токен сервиса', (fresh) => {
+      fresh.encToken = encTokNew;
+    });
     $('#token-input').value = '';
     toast('Сохранение подключено для всех сотрудников.');
     await enterApp();
@@ -417,17 +428,37 @@ async function loadAll() {
   }
 }
 
-async function saveEmployees(message) {
-  const payload = await cr.encryptJson(state.dataKey, { v: 3, employees: state.employees });
-  await state.store.putFile('data/employees.json.enc', payload, message);
+// Безопасная запись users.json: мутация применяется к СВЕЖЕЙ копии из репозитория,
+// чтобы параллельные изменения (например, активации приглашений другими
+// сотрудниками) не затирались записью «файлом целиком».
+async function mutateUsers(message, fn) {
+  let doc = state.usersDoc;
+  try {
+    const fresh = await state.store.getFile('data/users.json');
+    if (fresh) doc = JSON.parse(fresh.text);
+  } catch (e) { console.warn('users.json: свежая копия недоступна, пишем текущую', e); }
+  fn(doc);
+  state.usersDoc = doc;
+  if (state.session) {
+    state.me = doc.users.find((u) => u.id === state.session.userId) || state.me;
+  }
+  await state.store.putFile('data/users.json', JSON.stringify(doc, null, 2) + '\n', message);
 }
 
-async function saveUsers(message) {
-  await state.store.putFile(
-    'data/users.json',
-    JSON.stringify(state.usersDoc, null, 2) + '\n',
-    message
-  );
+// То же для базы сотрудников (шифрованной).
+async function mutateEmployees(message, fn) {
+  let list = state.employees;
+  try {
+    const file = await state.store.getFile('data/employees.json.enc');
+    if (file) {
+      const data = await cr.decryptJson(state.dataKey, file.text);
+      list = normalizeEmployees(data.employees || []);
+    }
+  } catch (e) { console.warn('employees: свежая копия недоступна, пишем текущую', e); }
+  fn(list);
+  state.employees = list;
+  const payload = await cr.encryptJson(state.dataKey, { v: 3, employees: list });
+  await state.store.putFile('data/employees.json.enc', payload, message);
 }
 
 async function saveTemplates(message) {
@@ -635,38 +666,19 @@ $('#f-enEnabled').addEventListener('change', (e) => {
 
 // Приглашение: одноразовый конверт dataKey под токеном из персональной ссылки.
 // Пароль сотрудник придумает сам при первом входе.
-async function createInvite(emp, role, existingUser) {
+async function buildInvite() {
   const token = genCode();
   const salt = cr.b64encode(cr.randomBytes(16));
   const derived = await cr.deriveKeys(token, salt, state.usersDoc.kdf.iterations);
-  const invite = {
-    salt,
-    verifier: derived.verifier,
-    encDataKey: await encryptObjForDoc(derived.encKey, state.session.dataKeyRaw),
-    createdAt: new Date().toISOString().slice(0, 10),
+  return {
+    token,
+    invite: {
+      salt,
+      verifier: derived.verifier,
+      encDataKey: await encryptObjForDoc(derived.encKey, state.session.dataKeyRaw),
+      createdAt: new Date().toISOString().slice(0, 10),
+    },
   };
-  let user = existingUser;
-  if (user) {
-    delete user.salt;
-    delete user.verifier;
-    delete user.encDataKey;
-    user.invite = invite;
-    if (role) user.role = role;
-    user.email = emp.loginEmail;
-    user.displayName = `${emp.firstName} ${emp.lastName}`;
-  } else {
-    user = {
-      id: 'u-' + hex8(),
-      employeeId: emp.id,
-      email: emp.loginEmail,
-      displayName: `${emp.firstName} ${emp.lastName}`,
-      role: role || 'user',
-      invite,
-      invitedAt: new Date().toISOString().slice(0, 10),
-    };
-    state.usersDoc.users.push(user);
-  }
-  return { user, link: `${BASE_URL}#invite=${user.id}.${token}` };
 }
 
 function inviteText(emp, link, role) {
@@ -790,26 +802,46 @@ $('#emp-form').addEventListener('submit', async (e) => {
     const user = userByEmployee(emp.id);
     let inviteLink = null;
     let inviteRole = null;
-    let usersChanged = false;
+    let usersMutation = null;
+    const newName = `${emp.firstName} ${emp.lastName}`;
     if (user) {
       const newRole = $('#f-role2').value;
-      if (user.role !== newRole || user.email !== emp.loginEmail
-          || user.displayName !== `${emp.firstName} ${emp.lastName}`) {
-        user.role = newRole;
-        user.email = emp.loginEmail;
-        user.displayName = `${emp.firstName} ${emp.lastName}`;
-        usersChanged = true;
+      if (user.role !== newRole || user.email !== emp.loginEmail || user.displayName !== newName) {
+        const userId = user.id;
+        const loginEmail2 = emp.loginEmail;
+        usersMutation = (fresh) => {
+          const u = fresh.users.find((x) => x.id === userId);
+          if (!u) return;
+          u.role = newRole;
+          u.email = loginEmail2;
+          u.displayName = newName;
+        };
       }
     } else if ($('#f-invite').checked) {
       const role = $('#f-role').value;
-      const created = await createInvite(emp, role, null);
-      inviteLink = created.link;
+      const built = await buildInvite();
+      const rec = {
+        id: 'u-' + hex8(),
+        employeeId: emp.id,
+        email: emp.loginEmail,
+        displayName: newName,
+        role,
+        invite: built.invite,
+        invitedAt: new Date().toISOString().slice(0, 10),
+      };
+      inviteLink = `${BASE_URL}#invite=${rec.id}.${built.token}`;
       inviteRole = role;
-      usersChanged = true;
+      usersMutation = (fresh) => {
+        fresh.users = fresh.users.filter((x) => x.employeeId !== emp.id);
+        fresh.users.push(rec);
+      };
     }
 
-    await saveEmployees(`${isNew ? 'Добавлен' : 'Обновлён'} сотрудник: ${emp.firstName} ${emp.lastName}`);
-    if (usersChanged) await saveUsers(`Доступы: ${emp.firstName} ${emp.lastName}`);
+    await mutateEmployees(`${isNew ? 'Добавлен' : 'Обновлён'} сотрудник: ${emp.firstName} ${emp.lastName}`, (list) => {
+      const idx = list.findIndex((x) => x.id === emp.id);
+      if (idx >= 0) list[idx] = emp; else list.push(emp);
+    });
+    if (usersMutation) await mutateUsers(`Доступы: ${newName}`, usersMutation);
 
     renderEmployees();
     fillDeptFilter();
@@ -837,8 +869,18 @@ $('#acc-reset').addEventListener('click', async () => {
   const btn = $('#acc-reset');
   busy(btn, true, 'Генерирую…');
   try {
-    const { link } = await createInvite(emp, null, user);
-    await saveUsers(`Новая ссылка для входа: ${user.displayName}`);
+    const built = await buildInvite();
+    const link = `${BASE_URL}#invite=${user.id}.${built.token}`;
+    await mutateUsers(`Новая ссылка для входа: ${user.displayName}`, (fresh) => {
+      const u = fresh.users.find((x) => x.id === user.id);
+      if (!u) return;
+      delete u.salt;
+      delete u.verifier;
+      delete u.encDataKey;
+      u.invite = built.invite;
+      u.email = emp.loginEmail;
+      u.displayName = `${emp.firstName} ${emp.lastName}`;
+    });
     closeEmpModal();
     showInviteModal(emp, link, user.role);
   } catch (err) {
@@ -862,11 +904,14 @@ $('#emp-delete').addEventListener('click', async () => {
     if (emp.photo && !/^(blob:|data:)/.test(emp.photo) && !state.store.isDev) {
       await state.store.deleteFile(emp.photo, `Удалено фото: ${emp.firstName} ${emp.lastName}`);
     }
-    state.employees = state.employees.filter((x) => x.id !== emp.id);
-    await saveEmployees(`Удалён сотрудник: ${emp.firstName} ${emp.lastName}`);
+    await mutateEmployees(`Удалён сотрудник: ${emp.firstName} ${emp.lastName}`, (list) => {
+      const idx = list.findIndex((x) => x.id === emp.id);
+      if (idx >= 0) list.splice(idx, 1);
+    });
     if (user) {
-      state.usersDoc.users = state.usersDoc.users.filter((u) => u.id !== user.id);
-      await saveUsers(`Отозван доступ: ${user.displayName}`);
+      await mutateUsers(`Отозван доступ: ${user.displayName}`, (fresh) => {
+        fresh.users = fresh.users.filter((u) => u.id !== user.id);
+      });
     }
     renderEmployees();
     fillDeptFilter();
@@ -1802,12 +1847,18 @@ $('#my-form').addEventListener('submit', async (e) => {
         photoUploaded = true;
       }
     }
-    await saveEmployees(`Сотрудник обновил данные: ${emp.firstName} ${emp.lastName}`);
+    await mutateEmployees(`Сотрудник обновил данные: ${emp.firstName} ${emp.lastName}`, (list) => {
+      const idx = list.findIndex((x) => x.id === emp.id);
+      if (idx >= 0) list[idx] = emp; else list.push(emp);
+    });
 
     // Синхронизация имени в записи пользователя
-    if (state.me.displayName !== `${emp.firstName} ${emp.lastName}`) {
-      state.me.displayName = `${emp.firstName} ${emp.lastName}`;
-      await saveUsers(`Обновлены данные входа: ${state.me.displayName}`);
+    const newName2 = `${emp.firstName} ${emp.lastName}`;
+    if (state.me.displayName !== newName2) {
+      await mutateUsers(`Обновлены данные входа: ${newName2}`, (fresh) => {
+        const u = fresh.users.find((x) => x.id === state.me.id);
+        if (u) u.displayName = newName2;
+      });
     }
     state.pendingPhoto = null;
     fillMy();
