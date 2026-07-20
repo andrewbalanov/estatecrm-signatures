@@ -99,18 +99,15 @@
       "email": "r.yazadgi@trace-it.ru",
       "displayName": "Роман Язаджи",
       "role": "user",
-      "invite": {
-        "salt": "nKFNIACdb5XrumLSHg+SbQ==",
-        "verifier": "frcGvpQMnhX88YYpS0xuvIk4sB7FgtkjtybQ6OR1lm4=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "OoW1TTYV0SzYbCN+",
-          "ct": "VgMv8uOuYmNwPYo74EAB9o2FbRRsq39ZWw/bbg6eooKYXeRTlVj407450wSJKD1qC0MdShmT0vMkG9NT"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "iVEZqzOY7pGCousgHopuXQ==",
+      "verifier": "utaz5p0lQIFcrw5ATTAJCVMCjckg4JGIEH+eRRJ92rg=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "XAz5lRAAuZd40v1E",
+        "ct": "1yIfLYHrhkaL5y1ftXkHMgDPGh8MAvC5Dtro1DDDhqjTzeikzesQOdBhrB3JtwZua8UWJUt4J98JjDlH"
+      }
     }
   ],
   "encToken": {
