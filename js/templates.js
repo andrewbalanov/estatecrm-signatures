@@ -173,7 +173,7 @@ ${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" styl
 <tr><td style="font-family:${FONT};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${FONT};color:${accent};font-size:18px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${FONT};color:${textColor};font-size:14px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
 ${socialsCell}</tr>
 <tr><td colspan="2" style="border-top:2px solid ${accent};border-bottom:2px solid ${accent};padding:10px 0;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
 <tr><td style="padding:0;">${contactsLine1}</td></tr>
 ${contactsLine2 ? `<tr><td style="padding:4px 0 0 0;">${contactsLine2}</td></tr>` : ''}
 </table>
