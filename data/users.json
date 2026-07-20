@@ -143,6 +143,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-f57053d4",
+      "employeeId": "emp-82380936",
+      "email": "n.busheva@trace-it.ru",
+      "displayName": "Наталья Бушева",
+      "role": "user",
+      "invite": {
+        "salt": "zWWeKpt9wpwH33l5OA1zVg==",
+        "verifier": "kB9HqDYOhNYEs1hUKtcCxU9iF04pjigDJG3zH36YRn0=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "eDAJFTApQd8EmrVA",
+          "ct": "UrNBhSwhvz1t+IjOTnk5H5hOIR5c2vkTYlN+pd0Wz6fCPYW+uqMI/DCmx+Ru2gUAeMmqpDtITOuYR53+"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
