@@ -19,22 +19,6 @@
         "ct": "38DYwJTEPyXHf8Xgt3nhUKJj4CX8Jhc31uqODCZPqGhwNCliPhIUP++UmmWVGAjOlMpi3BNX2tEVWL1Y"
       },
       "invitedAt": "2026-07-20"
-    },
-    {
-      "id": "u-test-maria",
-      "employeeId": "emp-test-maria",
-      "email": "m.testova@estatecrm.io",
-      "displayName": "Мария Тестова",
-      "role": "user",
-      "salt": "DreUIvzD8vrcuyOpdYW5wA==",
-      "verifier": "Fv5ZqxZvVJweucC7gVj7eWeQxuralByQ1wmfYEg+nxY=",
-      "encDataKey": {
-        "v": 1,
-        "alg": "AES-256-GCM",
-        "iv": "6vS6ml/wc58qcDXa",
-        "ct": "Ya/L2RTR3YjvVKTgqrlnQYAmUsKGLL8bYaUqtNpZsK9DDkMJ/wXPNRcVKZdBxVMkzUNunwGphhSBoAvk"
-      },
-      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
