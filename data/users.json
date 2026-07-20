@@ -297,13 +297,13 @@
       "displayName": "Максим Рябков",
       "role": "user",
       "invitedAt": "2026-07-20",
-      "salt": "eh2AdHyxWh+Bl+lCtNuCwA==",
-      "verifier": "uGdxOeF/NK3mqE1KR49sXJ19T9BkaRYhLYQNMOzKZfk=",
+      "salt": "H/K3xpivnYzYTs2z4RChGw==",
+      "verifier": "lKjhE7sONbjKFJEXN1syfkqChf9qgXXjRRdJuf12N/A=",
       "encDataKey": {
         "v": 1,
         "alg": "AES-256-GCM",
-        "iv": "PrqDwRGys+JccyQs",
-        "ct": "gztHmyFaz6kjRsU2RWIwLbzQ2eC+qA1M4vxE3sgfL4WAU5XAfie5nNhs66b/Bs0HUS+o6yh931eOhj4s"
+        "iv": "CO1kdzAsYnK4qYTt",
+        "ct": "1nDCSojJmnjwcUMXgK0a7nKV7X2YCBP+Ujw45+8/0nM2ErmWelTXOfNkL8DemxKjEIugOvitWs8Hm7BU"
       }
     },
     {
