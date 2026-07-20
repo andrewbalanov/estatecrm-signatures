@@ -162,6 +162,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-e61ad847",
+      "employeeId": "emp-7f6dc4ac",
+      "email": "a.chernyh@trace-it.ru",
+      "displayName": "Ангелина Черных",
+      "role": "user",
+      "invite": {
+        "salt": "ubsliqg9Hqhu/EeF+pJa4A==",
+        "verifier": "QWTCcmxHLud++irJGAhfk7aOT83ymeu/xPK2k6iBQK0=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "mJxgxTOxV3cbQJPK",
+          "ct": "GxVH/L1hsxyGOpPLrNrtcweREOha0ONXsfp5ETzFpEc//l9xfIJL/e5Yl2gV7x0cUoAM2Ety06NDjMTE"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
