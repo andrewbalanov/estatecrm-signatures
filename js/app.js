@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=9';
-import * as cr from './crypto.js?v=9';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=9';
+import { BASE_URL } from './config.js?v=10';
+import * as cr from './crypto.js?v=10';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=10';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
-  missingRequired, defaultTemplateConfig,
-} from './templates.js?v=9';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=9';
+  missingRequired, defaultTemplateConfig, escapeHtml,
+} from './templates.js?v=10';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=10';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -42,8 +42,10 @@ const state = {
   cropTarget: 'emp',  // 'emp' (модал администратора) | 'my' (личный кабинет)
   sigEmployeeId: null,
   sigIndex: 0,        // выбранная подпись в модале администратора
+  sigPreviewMode: 'desktop',
   mySigs: [],         // рабочая копия подписей в личном кабинете
   mySigIndex: 0,
+  myPreviewMode: 'desktop',
 };
 
 // ---------- Служебное ----------
@@ -1214,6 +1216,71 @@ function setCardsDisabled(container, missing, warnEl) {
   }
 }
 
+// ---------- Превью «как настоящее письмо» ----------
+const CHROME_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
+// Короткий текст письма перед подписью
+const PREVIEW_MAIL_TEXT = `<p style="margin:0 0 12px;">Добрый день!</p>
+<p style="margin:0 0 16px;">Отправляю материалы по нашему проекту — посмотрите, пожалуйста, до встречи в четверг, обсудим детали.</p>`;
+
+// mode 'desktop' — окно почтовой программы; 'mobile' — iPhone 17 Pro Max
+// (экран 440pt, поля Почты ~15px — переносы в подписи такие же, как на телефоне).
+function previewDoc(sigHtml, mode, senderName) {
+  const name = escapeHtml(senderName || 'Сотрудник');
+  const initials = escapeHtml((senderName || 'С')
+    .split(/\s+/).map((w) => w[0] || '').join('').slice(0, 2).toUpperCase());
+  const body = PREVIEW_MAIL_TEXT + sigHtml;
+  if (mode === 'mobile') {
+    return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#e9edf3;padding:14px 0;display:flex;justify-content:center;font-family:${CHROME_FONT};">
+<div style="width:440px;background:#0b0b0f;border-radius:58px;padding:10px;box-shadow:0 18px 50px rgba(15,25,50,.35);flex-shrink:0;">
+<div style="background:#fff;border-radius:48px;overflow:hidden;">
+<div style="height:56px;position:relative;background:#f7f8fa;">
+<div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#0b0b0f;border-radius:20px;"></div>
+<div style="position:absolute;top:19px;left:32px;font-size:15px;font-weight:600;color:#111;">9:41</div>
+<div style="position:absolute;top:21px;right:30px;display:flex;gap:6px;align-items:center;">
+<span style="font-size:10px;color:#111;letter-spacing:1px;">●●●</span>
+<span style="display:inline-block;width:24px;height:12px;border:1.5px solid #9aa1ad;border-radius:3px;position:relative;"><span style="position:absolute;left:1px;top:1px;bottom:1px;width:70%;background:#111;border-radius:1px;"></span></span>
+</div>
+</div>
+<div style="padding:10px 16px;border-bottom:1px solid #eef1f5;color:#4F7CFF;font-size:16px;background:#fff;">‹ Входящие</div>
+<div style="padding:12px 16px;border-bottom:1px solid #eef1f5;">
+<div style="display:flex;gap:10px;align-items:center;">
+<div style="width:38px;height:38px;border-radius:50%;background:#1D325C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">${initials}</div>
+<div><div style="font-weight:600;font-size:15px;color:#111;">${name}</div>
+<div style="font-size:13px;color:#6b7280;">Кому: Вам</div></div>
+</div>
+<div style="font-weight:700;font-size:17px;margin-top:10px;color:#111;">Материалы по проекту</div>
+</div>
+<div style="padding:16px 15px 10px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#212121;">${body}</div>
+<div style="height:28px;position:relative;"><div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:148px;height:5px;background:#111;border-radius:3px;"></div></div>
+</div></div></body></html>`;
+  }
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#e9edf3;padding:16px;font-family:${CHROME_FONT};">
+<div style="max-width:632px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #dfe4ee;box-shadow:0 14px 40px rgba(15,25,50,.16);overflow:hidden;">
+<div style="background:linear-gradient(#f7f8fa,#eef0f4);padding:11px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #e2e6ef;">
+<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ff5f57;"></span>
+<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#febc2e;"></span>
+<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#28c840;"></span>
+<span style="flex:1;text-align:center;color:#6b7280;font-size:13px;font-weight:600;">Материалы по проекту</span>
+<span style="width:54px;"></span>
+</div>
+<div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Кому:&nbsp;<span style="background:#eef3ff;color:#1D325C;border-radius:10px;padding:2px 10px;font-weight:600;">Иван Партнёров</span></div>
+<div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Тема:&nbsp;<span style="color:#111;font-weight:600;">Материалы по проекту</span></div>
+<div style="padding:18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#212121;">${body}</div>
+</div></body></html>`;
+}
+
+function setPreview(iframe, sigHtml, mode, senderName) {
+  iframe.style.width = (mode === 'mobile' ? 492 : 664) + 'px';
+  iframe.style.height = (mode === 'mobile' ? 840 : 620) + 'px';
+  iframe.srcdoc = previewDoc(sigHtml, mode, senderName);
+  iframe.onload = () => {
+    try {
+      const h = iframe.contentDocument.body.scrollHeight + 6;
+      iframe.style.height = Math.max(420, h) + 'px';
+    } catch (e) { /* превью без авто-высоты */ }
+  };
+}
+
 function buildSigSwitch(container, emp, activeIndex, onSwitch) {
   container.innerHTML = '';
   container.classList.toggle('hidden', emp.signatures.length < 2);
@@ -1245,8 +1312,8 @@ function currentSigContext() {
 function renderSigModal() {
   const ctx = currentSigContext();
   $('#sig-title').textContent = `Подписи: ${ctx.emp.firstName} ${ctx.emp.lastName}`;
-  $('#sig-preview').srcdoc =
-    `<!doctype html><meta charset="utf-8"><body style="margin:16px;background:#fff;">${ctx.html}</body>`;
+  setPreview($('#sig-preview'), ctx.html, state.sigPreviewMode,
+    `${ctx.emp.firstName} ${ctx.emp.lastName}`);
   buildSigSwitch($('#sig-switch'), ctx.emp, state.sigIndex, (i) => {
     state.sigIndex = i;
     renderSigModal();
@@ -1258,16 +1325,17 @@ function renderSigModal() {
 function openSigModal(empId) {
   state.sigEmployeeId = empId;
   state.sigIndex = 0;
-  $$('#modal-sig .seg[data-width]').forEach((b) => b.classList.toggle('active', b.dataset.width === '600'));
-  $('#sig-preview').style.width = '600px';
+  state.sigPreviewMode = 'desktop';
+  $$('#modal-sig .seg[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === 'desktop'));
   renderClientCards($('#sig-clients'), currentSigContext);
   renderSigModal();
   $('#modal-sig').classList.remove('hidden');
 }
 
-$$('#modal-sig .seg[data-width]').forEach((btn) => btn.addEventListener('click', () => {
-  $$('#modal-sig .seg[data-width]').forEach((b) => b.classList.toggle('active', b === btn));
-  $('#sig-preview').style.width = btn.dataset.width + 'px';
+$$('#modal-sig .seg[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
+  $$('#modal-sig .seg[data-mode]').forEach((b) => b.classList.toggle('active', b === btn));
+  state.sigPreviewMode = btn.dataset.mode;
+  renderSigModal();
 }));
 
 $('#sig-copy-html').addEventListener('click', async () => {
@@ -1323,6 +1391,8 @@ function fillMy() {
   state.cropSourceUrl = null;
   state.mySigs = emp.signatures.map((s) => ({ ...s }));
   state.mySigIndex = 0;
+  state.myPreviewMode = 'desktop';
+  $$('#my-seg .seg').forEach((b) => b.classList.toggle('active', b.dataset.mode === 'desktop'));
   $('#mf-firstName').value = emp.firstName || '';
   $('#mf-lastName').value = emp.lastName || '';
   $('#mf-position').value = emp.position || '';
@@ -1360,8 +1430,8 @@ let myPreviewTimer = null;
 function refreshMyPreview() {
   const ctx = myContext();
   if (!ctx) return;
-  $('#my-preview').srcdoc =
-    `<!doctype html><meta charset="utf-8"><body style="margin:16px;background:#fff;">${ctx.html}</body>`;
+  setPreview($('#my-preview'), ctx.html, state.myPreviewMode,
+    `${ctx.emp.firstName} ${ctx.emp.lastName}`);
   setCardsDisabled($('#my-clients'), ctx.missing, $('#my-missing'));
   for (const f of EMPLOYEE_FIELDS) {
     if (f.id === 'photo') continue;
@@ -1384,7 +1454,8 @@ $('#my-form').addEventListener('input', () => {
 
 $$('#my-seg .seg').forEach((btn) => btn.addEventListener('click', () => {
   $$('#my-seg .seg').forEach((b) => b.classList.toggle('active', b === btn));
-  $('#my-preview').style.width = btn.dataset.width + 'px';
+  state.myPreviewMode = btn.dataset.mode;
+  refreshMyPreview();
 }));
 
 $('#my-form').addEventListener('submit', async (e) => {

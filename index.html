@@ -7,7 +7,7 @@
 <title>EstateCRM — Подписи</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D325C'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/cropper.min.css">
-<link rel="stylesheet" href="css/app.css?v=9">
+<link rel="stylesheet" href="css/app.css?v=10">
 </head>
 <body>
 
@@ -168,8 +168,8 @@
           <div class="segmented" id="my-sig-switch"></div>
           <span class="flex-spacer"></span>
           <div class="segmented" id="my-seg">
-            <button type="button" class="seg active" data-width="600">Десктоп</button>
-            <button type="button" class="seg" data-width="375">Мобильный</button>
+            <button type="button" class="seg active" data-mode="desktop">Компьютер</button>
+            <button type="button" class="seg" data-mode="mobile">iPhone</button>
           </div>
         </div>
         <label class="sig-email-label" id="l-mf-sigEmail">Email в этой подписи
@@ -296,8 +296,8 @@
       <div class="segmented" id="sig-switch"></div>
       <span class="flex-spacer"></span>
       <div class="segmented">
-        <button type="button" class="seg active" data-width="600">Десктоп</button>
-        <button type="button" class="seg" data-width="375">Мобильный</button>
+        <button type="button" class="seg active" data-mode="desktop">Компьютер</button>
+        <button type="button" class="seg" data-mode="mobile">iPhone</button>
       </div>
       <button type="button" id="sig-copy-html" class="secondary small">Скопировать HTML-код</button>
     </div>
@@ -359,6 +359,6 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="vendor/cropper.min.js"></script>
-<script type="module" src="js/app.js?v=9"></script>
+<script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>
