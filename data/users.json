@@ -25,7 +25,7 @@
       "employeeId": "emp-3414f0b6",
       "email": "l.morozova@trace-it.ru",
       "displayName": "Лина Морозова",
-      "role": "admin",
+      "role": "user",
       "invite": {
         "salt": "CPJzbDGOKYg6dTbPosCBiA==",
         "verifier": "IQ+ICPBMp0NA7olsiktxi7O5BXutJPaKVdgn2Uf36t0=",
