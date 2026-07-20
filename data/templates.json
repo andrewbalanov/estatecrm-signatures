@@ -5,7 +5,12 @@
       "name": "EstateCRM — основной",
       "renderer": "estatecrm-classic",
       "config": {
-        "required": ["firstName", "lastName", "position", "email"],
+        "required": [
+          "firstName",
+          "lastName",
+          "position",
+          "email"
+        ],
         "greeting": "С уважением,",
         "companyName": "EstateCRM",
         "logo": {
@@ -25,14 +30,54 @@
           "text": "#212121"
         },
         "socials": [
-          { "network": "linkedin", "enabled": true, "url": "https://www.linkedin.com/in/andrewbalanov", "perEmployee": true },
-          { "network": "telegram", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "whatsapp", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "instagram", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "facebook", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "youtube", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "vk", "enabled": false, "url": "", "perEmployee": false },
-          { "network": "twitter", "enabled": false, "url": "", "perEmployee": false }
+          {
+            "network": "linkedin",
+            "enabled": true,
+            "url": "https://www.linkedin.com/in/andrewbalanov",
+            "perEmployee": true
+          },
+          {
+            "network": "telegram",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "whatsapp",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "instagram",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "facebook",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "youtube",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "vk",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "twitter",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          }
         ],
         "button": {
           "enabled": true,
@@ -40,6 +85,97 @@
           "width": 174,
           "height": 39,
           "url": "https://calendly.com/estatecrm/estatecrm",
+          "alt": "Meet me on Zoom"
+        }
+      }
+    },
+    {
+      "id": "tpl-41b4075b",
+      "name": "Trace",
+      "renderer": "estatecrm-classic",
+      "config": {
+        "required": [
+          "firstName",
+          "lastName",
+          "position",
+          "mobile",
+          "email",
+          "photo"
+        ],
+        "greeting": "С уважением,",
+        "companyName": "Trace",
+        "logo": {
+          "src": "assets/logo.png",
+          "width": 169,
+          "height": 29,
+          "alt": "EstateCRM",
+          "href": "https://www.estatecrm.io"
+        },
+        "companyPhone": "+7 495 256-22-25",
+        "website": {
+          "label": "www.trace-it.ru",
+          "url": "https://www.trace-it.ru"
+        },
+        "colors": {
+          "accent": "#1d325c",
+          "text": "#212121"
+        },
+        "socials": [
+          {
+            "network": "linkedin",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "telegram",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "whatsapp",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "instagram",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "facebook",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "youtube",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "vk",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          },
+          {
+            "network": "twitter",
+            "enabled": false,
+            "url": "",
+            "perEmployee": false
+          }
+        ],
+        "button": {
+          "enabled": false,
+          "image": "assets/icons/zoom-button.png",
+          "width": 174,
+          "height": 39,
+          "url": "",
           "alt": "Meet me on Zoom"
         }
       }
