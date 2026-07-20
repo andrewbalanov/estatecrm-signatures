@@ -178,6 +178,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-9fa8b709",
+      "employeeId": "emp-a24e15f0",
+      "email": "a.korzhavy@trace-it.ru",
+      "displayName": "Антон Коржавый",
+      "role": "user",
+      "invite": {
+        "salt": "VA88CN+PUNPwegrVTg8izg==",
+        "verifier": "upUuRwL6mGn9PubhTlocJVV/Prh5uwFsShbDmWCvvho=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "XSv40DuIfNrW55fr",
+          "ct": "C32bub2mcer9KBoa+Y/qqZX9tZoP7DF4TW0ny/17MzF48UJOnmZR+/wvGCxZAfY8qiT6O3Ewq4OwHJa3"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
