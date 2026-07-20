@@ -37,5 +37,10 @@
       "invitedAt": "2026-07-20"
     }
   ],
-  "encToken": null
+  "encToken": {
+    "v": 1,
+    "alg": "AES-256-GCM",
+    "iv": "EmfOuzC2QrkR6dy7",
+    "ct": "a4BE6R/qoXvpaOJkW/QBgcm75cvOGPC2LPzHQBBw3KBxsAvSJXbCxUl7J6z16SR6SkBEG0/4BA5XvSTT+RPteiO99QmFiMYi7mA1prhb4SBGJoh92otv+/gkgYO2tNC1edPW2quc/iW3xrRI0w=="
+  }
 }
