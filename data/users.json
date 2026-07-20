@@ -26,18 +26,15 @@
       "email": "i.proverkina@estatecrm.io",
       "displayName": "Ирина Проверкина",
       "role": "user",
-      "invite": {
-        "salt": "SrI3ca0FfBBKLH9ySxz9Nw==",
-        "verifier": "Pdo1A/1HwSodzncS6wpVoQ3gVNG/+M6+q6xe+8FxqSo=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "PMpkkkDoN3RZ+FsE",
-          "ct": "d6223JNgQ/lluUTYZPTVuh7PE1/p/5Xkz0XSlLrlBhWSS6/xsHaGFNSdURkL55t21BIJCPMTIP9XiJSq"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "33crXo5KjHD/Gs8Rt5WE2Q==",
+      "verifier": "MNcYyvt46bgaXSkFdJuV6uoXn7l8lAwm3SVAYhCYgYQ=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "jdbg9E0eFy60Aa+8",
+        "ct": "ww0O5ynTN3D5Z0Z+bxQ9Gpm09lRpMBXRjZsLsoWh5jDG0u2Lqs1o8T5OzuC9QbKSTNO5unZkYL56EACJ"
+      }
     }
   ],
   "encToken": {
