@@ -38,6 +38,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-d80efc97",
+      "employeeId": "emp-4b582359",
+      "email": "a.labyntsev@trace-it.ru",
+      "displayName": "Андрей Лабынцев",
+      "role": "user",
+      "invite": {
+        "salt": "9iZR3t0t2G6rfe3CwjgtQg==",
+        "verifier": "mLGMHDgif1azIeSmeBD0aPqMegVR7Tq6zqKsjnnuodY=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "LpsQijOu6SLxyHRZ",
+          "ct": "e4OI5QP4BYJSIX1wmzciEVU8PVUeJ93IFTq4X33VFra+fpLwqvkF7uk1yNoXht0zqXjfCahspLeOR+ud"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
