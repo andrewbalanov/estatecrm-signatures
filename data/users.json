@@ -216,6 +216,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-224c4f48",
+      "employeeId": "emp-54af70f7",
+      "email": "s.homenko@trace-it.ru",
+      "displayName": "Семен Хоменко",
+      "role": "user",
+      "invite": {
+        "salt": "HqfQz0vxboqtOApCeUx2/A==",
+        "verifier": "iujw+32oOc1xyYSNEq53/qHiT/aJsVfy8QSUzparUpE=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "1rm9MEdpSn5Su9el",
+          "ct": "nFcxp4JgQEJF0XI5uX/YZoEXbxOdbZSM2gcujMA60ziaaGUjeiy/fGWQjmd61xZIme6aS0apxgAbsGFY"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
