@@ -118,27 +118,26 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
   const iconImg = (icon, alt) =>
     `<img src="${absUrl(icon, baseUrl)}" width="13" height="13" alt="${alt}" style="width:13px;height:13px;border:0;vertical-align:middle;"><!--[if mso]><span>&nbsp;</span><![endif]-->`;
 
-  // Контактная строка: каждый элемент неразрывный, между собой переносятся —
-  // на десктопе одна строка, на мобильных аккуратно складываются.
+  // Контактная строка: каждый элемент — атомарная мини-таблица (align=left).
+  // Такие блоки переносятся на новую строку ЦЕЛИКОМ (иконка вместе с текстом),
+  // даже если почтовая программа вычистит запреты переносов у текста —
+  // это надёжнее спанов с white-space:nowrap.
+  const contactItem = (icon, alt, href, text) =>
+    `<table align="left" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:${FONT};font-size:12px;line-height:1.5;color:${textColor};white-space:nowrap;padding:0 12px 2px 0;">${iconImg(icon, alt)}<a href="${href}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(text)}</span></a></td></tr></table>`;
+
   const contactItems = [];
   if (cfg.companyPhone) {
-    contactItems.push(
-      `<span style="white-space:nowrap;">${iconImg('assets/icons/phone.png', 'тел')}<a href="${telHref(cfg.companyPhone)}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(cfg.companyPhone)}</span></a></span>`
-    );
+    contactItems.push(contactItem('assets/icons/phone.png', 'тел', telHref(cfg.companyPhone), cfg.companyPhone));
   }
   if (employee.mobile) {
-    contactItems.push(
-      `<span style="white-space:nowrap;">${iconImg('assets/icons/mobile.png', 'моб')}<a href="${telHref(employee.mobile)}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(employee.mobile)}</span></a></span>`
-    );
+    contactItems.push(contactItem('assets/icons/mobile.png', 'моб', telHref(employee.mobile), employee.mobile));
   }
   if (cfg.website && cfg.website.url) {
-    contactItems.push(
-      `<span style="white-space:nowrap;">${iconImg('assets/icons/globe.png', 'сайт')}<a href="${escapeHtml(cfg.website.url)}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(cfg.website.label || cfg.website.url)}</span></a></span>`
-    );
+    contactItems.push(contactItem('assets/icons/globe.png', 'сайт', escapeHtml(cfg.website.url), cfg.website.label || cfg.website.url));
   }
-  const contactsLine1 = contactItems.join('&nbsp;&nbsp; ');
+  const contactsLine1 = contactItems.join('');
   const contactsLine2 = employee.email
-    ? `<span style="white-space:nowrap;">${iconImg('assets/icons/email.png', 'email')}<a href="mailto:${escapeHtml(employee.email)}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(employee.email)}</span></a></span>`
+    ? contactItem('assets/icons/email.png', 'email', `mailto:${escapeHtml(employee.email)}`, employee.email)
     : '';
 
   const socialsHtml = socials.map(s =>
@@ -174,8 +173,10 @@ ${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" styl
 <tr><td style="font-family:${FONT};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${FONT};color:${accent};font-size:18px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${FONT};color:${textColor};font-size:14px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
 ${socialsCell}</tr>
 <tr><td colspan="2" style="border-top:2px solid ${accent};border-bottom:2px solid ${accent};padding:10px 0;">
-<p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.5;color:${textColor};">${contactsLine1}</p>
-${contactsLine2 ? `<p style="margin:6px 0 0 0;font-family:${FONT};font-size:12px;line-height:1.5;color:${textColor};">${contactsLine2}</p>` : ''}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
+<tr><td style="padding:0;">${contactsLine1}</td></tr>
+${contactsLine2 ? `<tr><td style="padding:4px 0 0 0;">${contactsLine2}</td></tr>` : ''}
+</table>
 </td></tr>
 </table>
 </td></tr>
