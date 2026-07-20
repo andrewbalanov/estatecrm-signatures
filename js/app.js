@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=12';
-import * as cr from './crypto.js?v=12';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=12';
+import { BASE_URL } from './config.js?v=13';
+import * as cr from './crypto.js?v=13';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=13';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=12';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=12';
+} from './templates.js?v=13';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=13';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1189,7 +1189,7 @@ const FONT_SIZES = [12, 13, 14, 15, 16, 17, 18];
 const CLIENT_FONT_DEFAULTS = {
   'outlook-win': { font: 'aptos', size: 15 },
   'outlook-mac': { font: 'aptos', size: 15 },
-  'mail-mac': { font: 'helvetica', size: 14 },
+  'mail-mac': { font: 'helvetica', size: 12 },
   'mail-iphone': { font: 'helvetica', size: 16 },
 };
 

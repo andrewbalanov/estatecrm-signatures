@@ -70,6 +70,18 @@ export function telHref(phone) {
   return 'tel:' + String(phone || '').replace(/[^+\d]/g, '');
 }
 
+// Единый формат отображения российских номеров: +7 XXX XXX-XX-XX.
+// Номера в другом формате (иностранные, с добавочными) выводятся как введены.
+export function formatPhone(phone) {
+  const raw = String(phone || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  if (/^[78]\d{10}$/.test(digits)) {
+    const d = '7' + digits.slice(1);
+    return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9, 11)}`;
+  }
+  return raw;
+}
+
 function absUrl(path, baseUrl) {
   if (!path) return '';
   if (/^(https?:|blob:|data:)/.test(path)) return path;
@@ -130,10 +142,10 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
 
   const contactItems = [];
   if (cfg.companyPhone) {
-    contactItems.push(contactItem('assets/icons/phone.png', 'тел', telHref(cfg.companyPhone), cfg.companyPhone));
+    contactItems.push(contactItem('assets/icons/phone.png', 'тел', telHref(cfg.companyPhone), formatPhone(cfg.companyPhone)));
   }
   if (employee.mobile) {
-    contactItems.push(contactItem('assets/icons/mobile.png', 'моб', telHref(employee.mobile), employee.mobile));
+    contactItems.push(contactItem('assets/icons/mobile.png', 'моб', telHref(employee.mobile), formatPhone(employee.mobile)));
   }
   if (cfg.website && cfg.website.url) {
     contactItems.push(contactItem('assets/icons/globe.png', 'сайт', escapeHtml(cfg.website.url), cfg.website.label || cfg.website.url));
@@ -143,9 +155,13 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
     ? contactItem('assets/icons/email.png', 'email', `mailto:${escapeHtml(employee.email)}`, employee.email)
     : '';
 
-  const socialsHtml = socials.map(s =>
-    `<a href="${escapeHtml(s.url)}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${absUrl(s.icon, baseUrl)}" width="25" height="25" alt="${s.label}" style="width:25px;height:25px;border:0;display:inline-block;"></a>`
-  ).join('&nbsp;');
+  // Иконки соцсетей — ячейки одной строки таблицы: строка таблицы не переносится,
+  // поэтому иконки всегда стоят в один горизонтальный ряд (и на мобильных).
+  const socialsHtml = socials.length
+    ? `<table cellpadding="0" cellspacing="0" border="0" align="right" style="border-collapse:collapse;"><tr>${socials.map(s =>
+      `<td style="padding:0 0 0 6px;"><a href="${escapeHtml(s.url)}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${absUrl(s.icon, baseUrl)}" width="25" height="25" alt="${s.label}" style="width:25px;height:25px;border:0;display:block;"></a></td>`
+    ).join('')}</tr></table>`
+    : '';
 
   // Должность и компания: соединяем запятой, только если есть обе части
   const titleLine = [employee.position, cfg.companyName]
