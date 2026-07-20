@@ -19,22 +19,6 @@
         "ct": "38DYwJTEPyXHf8Xgt3nhUKJj4CX8Jhc31uqODCZPqGhwNCliPhIUP++UmmWVGAjOlMpi3BNX2tEVWL1Y"
       },
       "invitedAt": "2026-07-20"
-    },
-    {
-      "id": "u-test-irina",
-      "employeeId": "emp-test-irina",
-      "email": "i.proverkina@estatecrm.io",
-      "displayName": "Ирина Проверкина",
-      "role": "user",
-      "invitedAt": "2026-07-20",
-      "salt": "33crXo5KjHD/Gs8Rt5WE2Q==",
-      "verifier": "MNcYyvt46bgaXSkFdJuV6uoXn7l8lAwm3SVAYhCYgYQ=",
-      "encDataKey": {
-        "v": 1,
-        "alg": "AES-256-GCM",
-        "iv": "jdbg9E0eFy60Aa+8",
-        "ct": "ww0O5ynTN3D5Z0Z+bxQ9Gpm09lRpMBXRjZsLsoWh5jDG0u2Lqs1o8T5OzuC9QbKSTNO5unZkYL56EACJ"
-      }
     }
   ],
   "encToken": {
