@@ -255,18 +255,15 @@
       "email": "z.miniyarov@trace-it.ru",
       "displayName": "Замир Минияров",
       "role": "user",
-      "invite": {
-        "salt": "LZcUMNXUVO+P6tTdbHAH2Q==",
-        "verifier": "ogZ9wWla6ZxZayiK956YCq54LbkYX/9yaY5y5VaUBkg=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "zYzrI0x8SNOZvEbB",
-          "ct": "yt6GfvM43H0MEKc+gI70A2IpEaHdTaLe/TgPKEFHvfPxoxZx6vDhtoJd6YLfZ8hzdfmh+1+6DS0giRYH"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "y8vYrUOzL3K7vh6max+8JA==",
+      "verifier": "wbonGH2trUmsSd84FGZNn9ctoYkfA88BwXq7/2wRq6M=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "7RTum5YRHr8UOtQE",
+        "ct": "J25O4D+/4fvAFjzu5/RCAEObHd5pLbTQoXalPsSSxlbV+paT0ltF9PvgIk1aaFq+3PFrMCm++QD9Efit"
+      }
     },
     {
       "id": "u-e7054993",
