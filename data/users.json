@@ -201,18 +201,15 @@
       "email": "n.eliseeva@trace-it.ru",
       "displayName": "Наталья Елисеева",
       "role": "user",
-      "invite": {
-        "salt": "pwH4f8ctGHc01Rn1Zj8wgQ==",
-        "verifier": "QgqRMAxViMC9VZTEumYUtYeQL17HAu5RO2BVL/u/Icw=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "57Vc03F2HTdGEeBB",
-          "ct": "m5+EzHeduxsIkUp1J5OiCsagQBDZh9+Z76m0QgJS+kvwClFH6a+qzoJs23RyjHHRn/syK9f/iHyBCTkX"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "UVYSU/kjsndxTXNPz0jfTA==",
+      "verifier": "Ws0rRmhmlOLf0d/4gUfeQZ2o5SCBoFTGN4NtK3WLEU8=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "4De80dLvzG07zaxv",
+        "ct": "sWiVhoAHovwgHsPkRIEich6Gu0CGl0omIJ/A0u0E/G/90hgs/ihthDq19AzzgKwZvZMelp+RExSFSNZw"
+      }
     },
     {
       "id": "u-224c4f48",
