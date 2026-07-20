@@ -325,6 +325,40 @@ input[type="color"] { padding: 3px; height: 42px; cursor: pointer; }
 .logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
 @media (max-width: 560px) { .logo-row { flex-direction: column; align-items: flex-start; } }
 
+/* ---------- Установщик подписи ---------- */
+.inst-step { font-weight: 700; color: var(--accent); font-size: 14px; margin: 14px 0 8px; }
+.inst-title { font-weight: 700; color: var(--accent); font-size: 16px; }
+.inst-picker { display: flex; flex-direction: column; gap: 10px; }
+.inst-pick {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; background: #f8fafc;
+  border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; font-size: 15px; text-align: left; width: 100%;
+}
+.inst-pick:hover { border-color: var(--accent-light); background: #eef3ff; filter: none; }
+.ip-name { font-weight: 700; color: var(--accent); font-size: 16px; }
+.ip-email { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.ip-arrow { color: var(--accent); font-size: 20px; }
+.inst-clients { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 640px) { .inst-clients { grid-template-columns: 1fr 1fr; } }
+.inst-client {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border: 1px solid var(--border); border-radius: 10px;
+  background: #fff; font-size: 13px; color: var(--text);
+}
+.inst-client .ic-icon { font-size: 20px; }
+.inst-client.active {
+  border-color: var(--accent); background: #eef3ff; color: var(--accent);
+  font-weight: 700; box-shadow: inset 0 0 0 1px var(--accent);
+}
+.inst-fontrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.inst-fontrow label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.inst-fontrow select { width: auto; }
+.inst-badge {
+  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+  background: #e9f7ef; color: #1e7a45; border: 1px solid #c6e8d3;
+}
+
 /* ---------- Тост ---------- */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

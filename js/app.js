@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=10';
-import * as cr from './crypto.js?v=10';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=10';
+import { BASE_URL } from './config.js?v=11';
+import * as cr from './crypto.js?v=11';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=11';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=10';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=10';
+} from './templates.js?v=11';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=11';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -41,11 +41,8 @@ const state = {
   cropSourceUrl: null,
   cropTarget: 'emp',  // 'emp' (модал администратора) | 'my' (личный кабинет)
   sigEmployeeId: null,
-  sigIndex: 0,        // выбранная подпись в модале администратора
-  sigPreviewMode: 'desktop',
   mySigs: [],         // рабочая копия подписей в личном кабинете
   mySigIndex: 0,
-  myPreviewMode: 'desktop',
 };
 
 // ---------- Служебное ----------
@@ -1176,44 +1173,193 @@ $('#tpl-delete').addEventListener('click', async () => {
   }
 });
 
-// ---------- Карточки почтовых программ (общее) ----------
-function renderClientCards(container, ctxGetter) {
-  container.innerHTML = '';
-  for (const client of MAIL_CLIENTS) {
-    const card = document.createElement('div');
-    card.className = 'client-card';
-    card.innerHTML = `
-      <div class="cc-head"><span>${client.icon}</span><span>${client.name}</span></div>
-      <div class="cc-hint">${client.hint}</div>
-      <button class="primary small cc-copy">Скопировать подпись</button>
-      ${client.id === 'outlook-win' ? '<button class="secondary small cc-htm cc-extra">Скачать .htm</button>' : ''}
-      <details><summary>Как вставить</summary><ol>${client.steps.map((s) => `<li>${s}</li>`).join('')}</ol></details>`;
-    card.querySelector('.cc-copy').addEventListener('click', async () => {
-      const ctx = ctxGetter();
-      if (ctx.missing.length) return;
-      const ok = await copyRichHtml(ctx.html, ctx.plain);
-      toast(ok ? `Подпись скопирована — вставьте в ${client.name}.` : 'Не удалось скопировать.', !ok);
-    });
-    const htmBtn = card.querySelector('.cc-htm');
-    if (htmBtn) htmBtn.addEventListener('click', () => {
-      const ctx = ctxGetter();
-      if (ctx.missing.length) return;
-      downloadFile(`signature-${ctx.emp.id}.htm`,
-        fullHtmlDocument(ctx.html, `${ctx.emp.firstName} ${ctx.emp.lastName}`), 'text/html;charset=utf-8');
-      toast('Файл .htm скачан.');
-    });
-    container.appendChild(card);
-  }
-}
+// ---------- Установка подписи: подпись → программа → шрифт ----------
+const FONT_CHOICES = [
+  { id: 'aptos', label: 'Aptos / Calibri', family: "Aptos,Calibri,'Segoe UI',Arial,sans-serif" },
+  { id: 'arial', label: 'Arial', family: 'Arial,Helvetica,sans-serif' },
+  { id: 'helvetica', label: 'Helvetica', family: 'Helvetica,Arial,sans-serif' },
+  { id: 'verdana', label: 'Verdana', family: 'Verdana,Geneva,sans-serif' },
+  { id: 'tahoma', label: 'Tahoma', family: 'Tahoma,Geneva,sans-serif' },
+  { id: 'georgia', label: 'Georgia', family: 'Georgia,serif' },
+  { id: 'times', label: 'Times New Roman', family: "'Times New Roman',Times,serif" },
+];
+const FONT_SIZES = [12, 13, 14, 15, 16, 17, 18];
+// Шрифты «по умолчанию» почтовых программ (Outlook — Aptos/Calibri 11pt≈15px,
+// Apple Mail — Helvetica; на iPhone текст крупнее).
+const CLIENT_FONT_DEFAULTS = {
+  'outlook-win': { font: 'aptos', size: 15 },
+  'outlook-mac': { font: 'aptos', size: 15 },
+  'mail-mac': { font: 'helvetica', size: 14 },
+  'mail-iphone': { font: 'helvetica', size: 16 },
+};
 
-function setCardsDisabled(container, missing, warnEl) {
-  const disabled = missing.length > 0;
-  container.querySelectorAll('.cc-copy, .cc-htm').forEach((b) => { b.disabled = disabled; });
-  warnEl.classList.toggle('hidden', !disabled);
-  if (disabled) {
-    warnEl.textContent = 'Подпись нельзя установить, пока не заполнены обязательные поля: '
-      + missing.map((f) => f.label).join(', ') + '.';
+// Компонент установки: сначала явный выбор подписи (если их несколько),
+// затем панель конкретной подписи — программа, шрифт, превью, копирование.
+function createInstaller(root, cfg) {
+  root.innerHTML = `
+  <div class="inst-picker hidden"></div>
+  <div class="inst-panel hidden">
+    <div class="row gap" style="margin-bottom:6px;">
+      <button type="button" class="inst-back secondary small hidden">← Все подписи</button>
+      <div class="inst-title"></div>
+    </div>
+    <div class="inst-missing warn-box hidden"></div>
+    <div class="inst-step">1. Куда устанавливаете подпись?</div>
+    <div class="inst-clients"></div>
+    <div class="inst-step">2. Шрифт письма и подписи</div>
+    <div class="inst-fontrow">
+      <label>Шрифт <select class="inst-font"></select></label>
+      <label>Размер <select class="inst-size"></select></label>
+      <span class="inst-badge hidden"></span>
+      <button type="button" class="inst-reset secondary small hidden">Вернуть рекомендуемый</button>
+    </div>
+    <div class="inst-step">3. Проверьте и скопируйте</div>
+    <div class="row gap sig-toolbar">
+      <div class="segmented inst-mode">
+        <button type="button" class="seg" data-mode="desktop">Компьютер</button>
+        <button type="button" class="seg" data-mode="mobile">iPhone</button>
+      </div>
+    </div>
+    <div class="sig-preview-wrap"><iframe class="inst-preview" title="Превью письма"></iframe></div>
+    <div class="row gap wrap" style="margin-top:14px;">
+      <button type="button" class="primary inst-copy">Скопировать подпись</button>
+      <button type="button" class="secondary inst-htm hidden">Скачать .htm</button>
+      <button type="button" class="secondary small inst-html">HTML-код</button>
+    </div>
+    <details class="inst-howto instructions" style="margin-top:12px;"><summary></summary><ol></ol></details>
+  </div>`;
+  const el = (s) => root.querySelector(s);
+  const st = { sigIndex: null, clientId: 'outlook-win', fontId: 'aptos', size: 15, custom: false, mode: 'desktop' };
+
+  el('.inst-font').innerHTML = FONT_CHOICES
+    .map((f) => `<option value="${f.id}">${f.label}</option>`).join('');
+  el('.inst-size').innerHTML = FONT_SIZES
+    .map((s) => `<option value="${s}">${s} px</option>`).join('');
+  const clientsWrap = el('.inst-clients');
+  for (const c of MAIL_CLIENTS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'inst-client';
+    b.dataset.id = c.id;
+    b.innerHTML = `<span class="ic-icon">${c.icon}</span><span>${c.name}</span>`;
+    b.addEventListener('click', () => { st.clientId = c.id; applyClientDefaults(); render(); });
+    clientsWrap.appendChild(b);
   }
+
+  function fontOpts() {
+    const f = FONT_CHOICES.find((x) => x.id === st.fontId) || FONT_CHOICES[1];
+    return { fontFamily: f.family, fontSize: st.size };
+  }
+  function applyClientDefaults() {
+    const d = CLIENT_FONT_DEFAULTS[st.clientId];
+    st.fontId = d.font;
+    st.size = d.size;
+    st.custom = false;
+    st.mode = st.clientId === 'mail-iphone' ? 'mobile' : 'desktop';
+  }
+  function renderPicker() {
+    const wrap = el('.inst-picker');
+    wrap.innerHTML = '<div class="inst-step">Выберите, какую подпись установить:</div>';
+    cfg.getSignatures().forEach((sig, i) => {
+      const ctx = cfg.context(i, { fontFamily: 'Arial,Helvetica,sans-serif', fontSize: 14 });
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'inst-pick';
+      b.innerHTML = `<span class="ip-name"></span><span class="ip-email"></span>${ctx.missing.length ? '<span class="role-chip none">⚠ не готова</span>' : ''}<span class="ip-arrow">→</span>`;
+      b.querySelector('.ip-name').textContent = ctx.tpl.name;
+      b.querySelector('.ip-email').textContent = ctx.emp.email || '';
+      b.addEventListener('click', () => select(i));
+      wrap.appendChild(b);
+    });
+  }
+  function select(i) {
+    st.sigIndex = i;
+    applyClientDefaults();
+    el('.inst-picker').classList.add('hidden');
+    el('.inst-panel').classList.remove('hidden');
+    el('.inst-back').classList.toggle('hidden', cfg.getSignatures().length < 2);
+    if (cfg.onSelect) cfg.onSelect(i);
+    render();
+  }
+  function render() {
+    if (st.sigIndex === null) return;
+    const ctx = cfg.context(st.sigIndex, fontOpts());
+    const client = MAIL_CLIENTS.find((c) => c.id === st.clientId);
+    el('.inst-title').textContent = `Подпись «${ctx.tpl.name}» · ${ctx.emp.email || ''}`;
+    clientsWrap.querySelectorAll('.inst-client')
+      .forEach((b) => b.classList.toggle('active', b.dataset.id === st.clientId));
+    el('.inst-font').value = st.fontId;
+    el('.inst-size').value = String(st.size);
+    const badge = el('.inst-badge');
+    badge.classList.toggle('hidden', st.custom);
+    badge.textContent = `✓ Рекомендуемый для ${client.name}`;
+    el('.inst-reset').classList.toggle('hidden', !st.custom);
+    el('.inst-mode').querySelectorAll('.seg')
+      .forEach((b) => b.classList.toggle('active', b.dataset.mode === st.mode));
+    setPreview(el('.inst-preview'), ctx.html, st.mode,
+      `${ctx.emp.firstName} ${ctx.emp.lastName}`, fontOpts());
+    const dis = ctx.missing.length > 0;
+    const warn = el('.inst-missing');
+    warn.classList.toggle('hidden', !dis);
+    if (dis) {
+      warn.textContent = 'Подпись нельзя установить, пока не заполнены обязательные поля: '
+        + ctx.missing.map((f) => f.label).join(', ') + '.';
+    }
+    el('.inst-copy').disabled = dis;
+    el('.inst-htm').disabled = dis;
+    el('.inst-html').disabled = dis;
+    el('.inst-htm').classList.toggle('hidden', st.clientId !== 'outlook-win');
+    el('.inst-howto summary').textContent = `Как вставить в ${client.name}`;
+    el('.inst-howto ol').innerHTML = client.steps.map((s) => `<li>${s}</li>`).join('');
+  }
+  el('.inst-back').addEventListener('click', () => {
+    st.sigIndex = null;
+    el('.inst-panel').classList.add('hidden');
+    el('.inst-picker').classList.remove('hidden');
+    renderPicker();
+    if (cfg.onBack) cfg.onBack();
+  });
+  el('.inst-font').addEventListener('change', (e) => { st.fontId = e.target.value; st.custom = true; render(); });
+  el('.inst-size').addEventListener('change', (e) => { st.size = parseInt(e.target.value, 10); st.custom = true; render(); });
+  el('.inst-reset').addEventListener('click', () => { applyClientDefaults(); render(); });
+  el('.inst-mode').querySelectorAll('.seg').forEach((b) =>
+    b.addEventListener('click', () => { st.mode = b.dataset.mode; render(); }));
+  el('.inst-copy').addEventListener('click', async () => {
+    const ctx = cfg.context(st.sigIndex, fontOpts());
+    if (ctx.missing.length) return;
+    const client = MAIL_CLIENTS.find((c) => c.id === st.clientId);
+    const ok = await copyRichHtml(ctx.html, ctx.plain);
+    toast(ok ? `Подпись скопирована — вставьте в ${client.name}.` : 'Не удалось скопировать.', !ok);
+  });
+  el('.inst-htm').addEventListener('click', () => {
+    const ctx = cfg.context(st.sigIndex, fontOpts());
+    if (ctx.missing.length) return;
+    downloadFile(`signature-${ctx.emp.id}.htm`,
+      fullHtmlDocument(ctx.html, `${ctx.emp.firstName} ${ctx.emp.lastName}`), 'text/html;charset=utf-8');
+    toast('Файл .htm скачан.');
+  });
+  el('.inst-html').addEventListener('click', async () => {
+    const ctx = cfg.context(st.sigIndex, fontOpts());
+    await copyPlainText(ctx.html);
+    toast('HTML-код подписи скопирован как текст.');
+  });
+  return {
+    open() {
+      const sigs = cfg.getSignatures();
+      if (!sigs.length) return;
+      if (sigs.length === 1) {
+        select(0);
+      } else {
+        st.sigIndex = null;
+        renderPicker();
+        el('.inst-panel').classList.add('hidden');
+        el('.inst-picker').classList.remove('hidden');
+        if (cfg.onBack) cfg.onBack();
+      }
+    },
+    refresh: render,
+    get sigIndex() { return st.sigIndex; },
+  };
 }
 
 // ---------- Превью «как настоящее письмо» ----------
@@ -1224,7 +1370,10 @@ const PREVIEW_MAIL_TEXT = `<p style="margin:0 0 12px;">Добрый день!</p
 
 // mode 'desktop' — окно почтовой программы; 'mobile' — iPhone 17 Pro Max
 // (экран 440pt, поля Почты ~15px — переносы в подписи такие же, как на телефоне).
-function previewDoc(sigHtml, mode, senderName) {
+// fontOpts задаёт шрифт всего письма (текст + подпись рендерятся согласованно).
+function previewDoc(sigHtml, mode, senderName, fontOpts) {
+  const fam = fontOpts?.fontFamily || 'Arial,Helvetica,sans-serif';
+  const fs = fontOpts?.fontSize || 14;
   const name = escapeHtml(senderName || 'Сотрудник');
   const initials = escapeHtml((senderName || 'С')
     .split(/\s+/).map((w) => w[0] || '').join('').slice(0, 2).toUpperCase());
@@ -1250,7 +1399,7 @@ function previewDoc(sigHtml, mode, senderName) {
 </div>
 <div style="font-weight:700;font-size:17px;margin-top:10px;color:#111;">Материалы по проекту</div>
 </div>
-<div style="padding:16px 15px 10px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#212121;">${body}</div>
+<div style="padding:16px 15px 10px;font-family:${fam};font-size:${fs}px;line-height:1.5;color:#212121;">${body}</div>
 <div style="height:28px;position:relative;"><div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:148px;height:5px;background:#111;border-radius:3px;"></div></div>
 </div></div></body></html>`;
   }
@@ -1265,14 +1414,14 @@ function previewDoc(sigHtml, mode, senderName) {
 </div>
 <div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Кому:&nbsp;<span style="background:#eef3ff;color:#1D325C;border-radius:10px;padding:2px 10px;font-weight:600;">Иван Партнёров</span></div>
 <div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Тема:&nbsp;<span style="color:#111;font-weight:600;">Материалы по проекту</span></div>
-<div style="padding:18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#212121;">${body}</div>
+<div style="padding:18px;font-family:${fam};font-size:${fs}px;line-height:1.5;color:#212121;">${body}</div>
 </div></body></html>`;
 }
 
-function setPreview(iframe, sigHtml, mode, senderName) {
+function setPreview(iframe, sigHtml, mode, senderName, fontOpts) {
   iframe.style.width = (mode === 'mobile' ? 492 : 664) + 'px';
   iframe.style.height = (mode === 'mobile' ? 840 : 620) + 'px';
-  iframe.srcdoc = previewDoc(sigHtml, mode, senderName);
+  iframe.srcdoc = previewDoc(sigHtml, mode, senderName, fontOpts);
   iframe.onload = () => {
     try {
       const h = iframe.contentDocument.body.scrollHeight + 6;
@@ -1281,68 +1430,35 @@ function setPreview(iframe, sigHtml, mode, senderName) {
   };
 }
 
-function buildSigSwitch(container, emp, activeIndex, onSwitch) {
-  container.innerHTML = '';
-  container.classList.toggle('hidden', emp.signatures.length < 2);
-  emp.signatures.forEach((sig, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'seg' + (i === activeIndex ? ' active' : '');
-    b.textContent = templateById(sig.templateId)?.name || `Подпись ${i + 1}`;
-    b.addEventListener('click', () => onSwitch(i));
-    container.appendChild(b);
-  });
-}
-
 // ---------- Просмотр подписей (администратор) ----------
-function currentSigContext() {
+function adminSigContext(i, fontOpts) {
   const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
-  const idx = Math.min(state.sigIndex, emp.signatures.length - 1);
-  const sig = emp.signatures[idx];
+  const sig = emp.signatures[Math.min(i, emp.signatures.length - 1)];
   const tpl = templateById(sig.templateId);
   const viewEmp = sigView(emp, sig);
   return {
-    emp, sig, tpl,
+    emp: viewEmp, sig, tpl,
     missing: missingRequired(tpl, viewEmp),
-    html: renderSignature(tpl, viewEmp, BASE_URL),
+    html: renderSignature(tpl, viewEmp, BASE_URL, fontOpts),
     plain: renderPlainText(tpl, viewEmp),
   };
 }
 
-function renderSigModal() {
-  const ctx = currentSigContext();
-  $('#sig-title').textContent = `Подписи: ${ctx.emp.firstName} ${ctx.emp.lastName}`;
-  setPreview($('#sig-preview'), ctx.html, state.sigPreviewMode,
-    `${ctx.emp.firstName} ${ctx.emp.lastName}`);
-  buildSigSwitch($('#sig-switch'), ctx.emp, state.sigIndex, (i) => {
-    state.sigIndex = i;
-    renderSigModal();
-  });
-  setCardsDisabled($('#sig-clients'), ctx.missing, $('#sig-missing'));
-  $('#sig-copy-html').disabled = ctx.missing.length > 0;
-}
+const sigInstaller = createInstaller($('#sig-installer'), {
+  getSignatures: () => {
+    const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
+    return emp ? emp.signatures : [];
+  },
+  context: adminSigContext,
+});
 
 function openSigModal(empId) {
   state.sigEmployeeId = empId;
-  state.sigIndex = 0;
-  state.sigPreviewMode = 'desktop';
-  $$('#modal-sig .seg[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === 'desktop'));
-  renderClientCards($('#sig-clients'), currentSigContext);
-  renderSigModal();
+  const emp = state.employees.find((e) => e.id === empId);
+  $('#sig-title').textContent = `Подписи: ${emp.firstName} ${emp.lastName}`;
+  sigInstaller.open();
   $('#modal-sig').classList.remove('hidden');
 }
-
-$$('#modal-sig .seg[data-mode]').forEach((btn) => btn.addEventListener('click', () => {
-  $$('#modal-sig .seg[data-mode]').forEach((b) => b.classList.toggle('active', b === btn));
-  state.sigPreviewMode = btn.dataset.mode;
-  renderSigModal();
-}));
-
-$('#sig-copy-html').addEventListener('click', async () => {
-  const { html } = currentSigContext();
-  await copyPlainText(html);
-  toast('HTML-код подписи скопирован как текст.');
-});
 
 $('#sig-close').addEventListener('click', () => $('#modal-sig').classList.add('hidden'));
 
@@ -1367,18 +1483,48 @@ function myDraft() {
   return draft;
 }
 
-function myContext() {
+function myInstallContext(i, fontOpts) {
   const draft = myDraft();
-  const idx = Math.min(state.mySigIndex, draft.signatures.length - 1);
-  const sig = draft.signatures[idx];
+  const sig = draft.signatures[Math.min(i, draft.signatures.length - 1)];
   const tpl = templateById(sig.templateId);
   const viewEmp = sigView(draft, sig);
   return {
     emp: viewEmp, sig, tpl,
     missing: missingRequired(tpl, viewEmp),
-    html: renderSignature(tpl, viewEmp, BASE_URL),
+    html: renderSignature(tpl, viewEmp, BASE_URL, fontOpts),
     plain: renderPlainText(tpl, viewEmp),
   };
+}
+
+const myInstaller = createInstaller($('#my-installer'), {
+  getSignatures: () => state.mySigs,
+  context: myInstallContext,
+  onSelect: (i) => {
+    state.mySigIndex = i;
+    const sig = state.mySigs[i];
+    $('#l-mf-sigEmail').classList.remove('hidden');
+    $('#mf-sigEmail').value = sig.email || '';
+    updateMyReqMarks();
+  },
+  onBack: () => $('#l-mf-sigEmail').classList.add('hidden'),
+});
+
+// Пометки обязательных/незаполненных полей формы по шаблону выбранной подписи
+function updateMyReqMarks() {
+  const i = myInstaller.sigIndex;
+  if (i === null) return;
+  const draft = myDraft();
+  const sig = draft.signatures[Math.min(i, draft.signatures.length - 1)];
+  const tpl = templateById(sig.templateId);
+  const req = tpl.config.required || [];
+  const missing = missingRequired(tpl, sigView(draft, sig));
+  for (const f of EMPLOYEE_FIELDS) {
+    if (f.id === 'photo') continue;
+    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
+    if (!label) continue;
+    label.classList.toggle('req', req.includes(f.id));
+    label.classList.toggle('miss', missing.some((m) => m.id === f.id));
+  }
 }
 
 function fillMy() {
@@ -1391,8 +1537,6 @@ function fillMy() {
   state.cropSourceUrl = null;
   state.mySigs = emp.signatures.map((s) => ({ ...s }));
   state.mySigIndex = 0;
-  state.myPreviewMode = 'desktop';
-  $$('#my-seg .seg').forEach((b) => b.classList.toggle('active', b.dataset.mode === 'desktop'));
   $('#mf-firstName').value = emp.firstName || '';
   $('#mf-lastName').value = emp.lastName || '';
   $('#mf-position').value = emp.position || '';
@@ -1402,42 +1546,15 @@ function fillMy() {
   const src = photoSrc(emp);
   $('#my-photo-preview').innerHTML = src ? `<img src="${src}" alt="">` : '<span>Фото</span>';
   $('#my-photo-recrop').classList.add('hidden');
-  renderClientCards($('#my-clients'), myContext);
-  renderMySig();
-}
-
-function renderMySig() {
-  const emp = myEmployee();
-  if (!emp) return;
-  buildSigSwitch($('#my-sig-switch'), { signatures: state.mySigs }, state.mySigIndex, (i) => {
-    state.mySigIndex = i;
-    renderMySig();
-  });
-  const sig = state.mySigs[state.mySigIndex];
-  $('#mf-sigEmail').value = sig.email || '';
-
-  // Пометить обязательные поля текущего шаблона
-  const req = templateById(sig.templateId).config.required || [];
-  for (const f of EMPLOYEE_FIELDS) {
-    if (f.id === 'photo') continue;
-    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
-    if (label) label.classList.toggle('req', req.includes(f.id));
-  }
-  refreshMyPreview();
+  $('#l-mf-sigEmail').classList.add('hidden');
+  myInstaller.open();
 }
 
 let myPreviewTimer = null;
 function refreshMyPreview() {
-  const ctx = myContext();
-  if (!ctx) return;
-  setPreview($('#my-preview'), ctx.html, state.myPreviewMode,
-    `${ctx.emp.firstName} ${ctx.emp.lastName}`);
-  setCardsDisabled($('#my-clients'), ctx.missing, $('#my-missing'));
-  for (const f of EMPLOYEE_FIELDS) {
-    if (f.id === 'photo') continue;
-    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
-    if (label) label.classList.toggle('miss', ctx.missing.some((m) => m.id === f.id));
-  }
+  if (myInstaller.sigIndex === null) return;
+  myInstaller.refresh();
+  updateMyReqMarks();
 }
 
 $('#mf-sigEmail').addEventListener('input', () => {
@@ -1451,12 +1568,6 @@ $('#my-form').addEventListener('input', () => {
   clearTimeout(myPreviewTimer);
   myPreviewTimer = setTimeout(refreshMyPreview, 400);
 });
-
-$$('#my-seg .seg').forEach((btn) => btn.addEventListener('click', () => {
-  $$('#my-seg .seg').forEach((b) => b.classList.toggle('active', b === btn));
-  state.myPreviewMode = btn.dataset.mode;
-  refreshMyPreview();
-}));
 
 $('#my-form').addEventListener('submit', async (e) => {
   e.preventDefault();

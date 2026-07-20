@@ -106,15 +106,18 @@ const FONT = "Arial,Helvetica,sans-serif";
 // Основной рендер — воспроизводит образец EstateCRM (WiseStamp):
 // приветствие, логотип, карточка (фото + имя/должность + соцсети),
 // контакты между двумя линиями, кнопка видеозвонка.
-function renderEstateCrmClassic(template, employee, baseUrl) {
+function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
   const cfg = template.config;
+  const fam = opts.fontFamily || FONT;
+  const k = (opts.fontSize || 14) / 14;
+  const px = (n) => Math.max(10, Math.round(n * k));
   const accent = cfg.colors?.accent || '#1D325C';
   const textColor = cfg.colors?.text || '#212121';
   const fullName = `${employee.firstName} ${employee.lastName}`.trim();
   const photo = photoUrl(employee, baseUrl);
   const socials = resolvedSocials(template, employee);
 
-  const linkStyle = `font-family:${FONT};color:${textColor};text-decoration:none;`;
+  const linkStyle = `font-family:${fam};color:${textColor};text-decoration:none;`;
   const iconImg = (icon, alt) =>
     `<img src="${absUrl(icon, baseUrl)}" width="13" height="13" alt="${alt}" style="width:13px;height:13px;border:0;vertical-align:middle;"><!--[if mso]><span>&nbsp;</span><![endif]-->`;
 
@@ -123,7 +126,7 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
   // даже если почтовая программа вычистит запреты переносов у текста —
   // это надёжнее спанов с white-space:nowrap.
   const contactItem = (icon, alt, href, text) =>
-    `<table align="left" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:${FONT};font-size:12px;line-height:1.5;color:${textColor};white-space:nowrap;padding:0 12px 2px 0;">${iconImg(icon, alt)}<a href="${href}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(text)}</span></a></td></tr></table>`;
+    `<table align="left" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:${fam};font-size:${px(12)}px;line-height:1.5;color:${textColor};white-space:nowrap;padding:0 12px 2px 0;">${iconImg(icon, alt)}<a href="${href}" target="_blank" rel="nofollow noreferrer" style="${linkStyle}"><span style="color:${textColor};white-space:nowrap;">&nbsp;${escapeHtml(text)}</span></a></td></tr></table>`;
 
   const contactItems = [];
   if (cfg.companyPhone) {
@@ -145,10 +148,10 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
   ).join('&nbsp;');
 
   // Пустая строка-отступ в самом начале подписи (до «С уважением, …»)
-  const topSpacer = `<tr><td style="font-family:${FONT};font-size:14px;line-height:1.4;color:${textColor};">&nbsp;</td></tr>`;
+  const topSpacer = `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">&nbsp;</td></tr>`;
 
   const greeting = cfg.greeting
-    ? `<tr><td style="font-family:${FONT};font-size:14px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
+    ? `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
     : '';
 
   let logoSrc = cfg.logo && cfg.logo.src ? absUrl(cfg.logo.src, baseUrl) : '';
@@ -170,10 +173,10 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
     : '';
 
   return `<div dir="ltr"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-${topSpacer}${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${FONT};color:${textColor};">
+${topSpacer}${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${fam};color:${textColor};">
 <tr>${photoCell}<td valign="top" style="vertical-align:top;${photo ? 'padding:0 0 0 12px;' : ''}">
 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-<tr><td style="font-family:${FONT};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${FONT};color:${accent};font-size:18px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${FONT};color:${textColor};font-size:14px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
+<tr><td style="font-family:${fam};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${fam};color:${accent};font-size:${px(18)}px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${fam};color:${textColor};font-size:${px(14)}px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
 ${socialsCell}</tr>
 <tr><td colspan="2" style="border-top:2px solid ${accent};border-bottom:2px solid ${accent};padding:10px 0;">
 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
@@ -191,10 +194,10 @@ const RENDERERS = {
   'estatecrm-classic': renderEstateCrmClassic,
 };
 
-export function renderSignature(template, employee, baseUrl) {
+export function renderSignature(template, employee, baseUrl, opts) {
   const renderer = RENDERERS[template.renderer];
   if (!renderer) throw new Error(`Неизвестный рендер шаблона: ${template.renderer}`);
-  return renderer(template, employee, baseUrl);
+  return renderer(template, employee, baseUrl, opts);
 }
 
 // Текстовая версия — попадает в буфер обмена как text/plain (запасной вариант).
