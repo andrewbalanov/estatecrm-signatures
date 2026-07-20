@@ -128,18 +128,15 @@
       "email": "d.korobeynikova@trace-it.ru",
       "displayName": "Диана Коробейникова",
       "role": "user",
-      "invite": {
-        "salt": "Yye6ZbZNVFC+oLWDeA8v3Q==",
-        "verifier": "7bIe5dHMbB2SCqLwyS6kkd5eFLJE1xSHWYkVa7auzrc=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "Vs8xJ310LMD88FCW",
-          "ct": "aoKBgzGvKbG9vykD+D+lXWeehLEy+oNw1ksotcUcmYog3PTvtTjS/Cjs24Ev+/pYynsjeJJL4CFu+I1Z"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "GsLjOEGYsjX0mkgz1DAt3w==",
+      "verifier": "kXFN3YAqEuC2xxkmZ9vMzE7zprxtQkFOqHZrPYwr+a4=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "rU5RtbivUZ5Vsnbz",
+        "ct": "zZwIVjvYyVN9kXA4T3mo73bLjHYmfuuezhay3RR9bzB9UfaR1fwSN4WVtyOefzrrfF6BsVJVdG7B7UNs"
+      }
     },
     {
       "id": "u-f57053d4",
