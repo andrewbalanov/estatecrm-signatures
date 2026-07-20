@@ -1,6 +1,6 @@
 // Клиент GitHub Contents API: чтение и запись файлов репозитория.
-import { OWNER, REPO, BRANCH } from './config.js';
-import { b64encode, b64decode } from './crypto.js';
+import { OWNER, REPO, BRANCH } from './config.js?v=2';
+import { b64encode, b64decode } from './crypto.js?v=2';
 
 const API = 'https://api.github.com';
 

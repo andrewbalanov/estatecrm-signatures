@@ -5,14 +5,14 @@
 //   Для каждого пользователя dataKey зашифрован его личным ключом, выведенным
 //   из кода доступа (PBKDF2). users.json хранит только соли, верификаторы и конверты —
 //   по ним нельзя восстановить ни коды, ни данные.
-import { BASE_URL } from './config.js';
-import * as cr from './crypto.js';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js';
+import { BASE_URL } from './config.js?v=2';
+import * as cr from './crypto.js?v=2';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=2';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig,
-} from './templates.js';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js';
+} from './templates.js?v=2';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=2';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
