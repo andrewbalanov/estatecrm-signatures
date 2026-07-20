@@ -19,6 +19,25 @@
         "ct": "38DYwJTEPyXHf8Xgt3nhUKJj4CX8Jhc31uqODCZPqGhwNCliPhIUP++UmmWVGAjOlMpi3BNX2tEVWL1Y"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-970b0ff2",
+      "employeeId": "emp-3414f0b6",
+      "email": "l.morozova@trace-it.ru",
+      "displayName": "Лина Морозова",
+      "role": "admin",
+      "invite": {
+        "salt": "CPJzbDGOKYg6dTbPosCBiA==",
+        "verifier": "IQ+ICPBMp0NA7olsiktxi7O5BXutJPaKVdgn2Uf36t0=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "wJgFiG0q6/1joaJA",
+          "ct": "TlZWxkriBh8r/xcYYV0qHBfaU97CJ8tWqLlXw0I68jg8/quR8YF8E/dAlItP/uz0ubamIB854CIh5NtZ"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
