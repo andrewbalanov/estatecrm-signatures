@@ -123,7 +123,7 @@
         "socials": [
           {
             "network": "linkedin",
-            "enabled": true,
+            "enabled": false,
             "url": "https://www.linkedin.com/in/andrewbalanov",
             "perEmployee": false
           },
