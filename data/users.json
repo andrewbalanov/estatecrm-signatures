@@ -60,7 +60,7 @@
       "employeeId": "emp-488cf524",
       "email": "g.tsygankov@trace-it.ru",
       "displayName": "Глеб Цыганков",
-      "role": "admin",
+      "role": "user",
       "invite": {
         "salt": "+zyGPd7tmhgdy/E0/Yruzw==",
         "verifier": "AMFJpYr4JcLsplNr7bXQluDWoG6xvBs6zY9VeTchRTQ=",
