@@ -76,6 +76,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-3a88e8a9",
+      "employeeId": "emp-a5b2c5a7",
+      "email": "a.svistunov@trace-it.ru",
+      "displayName": "Александр Свистунов",
+      "role": "user",
+      "invite": {
+        "salt": "IDHcN2G8vRlXkhnmAiwdyQ==",
+        "verifier": "k2cJBvh2bY+SzAu05vHhJJcPEXSniGwaRUtRFnm4Sis=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "/lyatHCS/SGCqNOm",
+          "ct": "kU4fzj1VPLn77ehem0ygH1GYJIxcNx0TGmKSoPW/+ZpvNx4T1aIfqAa9lWnjaPubx+g6U+xEkcc60hNi"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
