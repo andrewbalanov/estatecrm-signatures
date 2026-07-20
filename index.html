@@ -16,22 +16,24 @@
   <div class="card login-card">
     <img src="assets/logo.png" alt="EstateCRM" class="login-logo">
     <h1>Генератор подписей</h1>
-    <p class="muted">Внутренний сервис. Вход только для администратора.</p>
+    <p class="muted">Внутренний сервис EstateCRM. Вход по личному коду доступа.</p>
     <form id="login-form">
-      <input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password" required>
+      <input type="email" id="login-email" placeholder="Рабочий email" autocomplete="username" required>
+      <input type="password" id="login-password" placeholder="Код доступа" autocomplete="current-password" required>
       <button type="submit" class="primary" id="login-btn">Войти</button>
     </form>
     <div id="login-error" class="error hidden"></div>
+    <p class="muted small-text">Нет кода доступа? Обратитесь к администратору.</p>
   </div>
 </div>
 
-<!-- ЭКРАН ПОДКЛЮЧЕНИЯ GITHUB-ТОКЕНА -->
+<!-- ЭКРАН ПОДКЛЮЧЕНИЯ GITHUB-ТОКЕНА (только администратор) -->
 <div id="screen-token" class="screen center-screen hidden">
   <div class="card login-card wide">
-    <h1>Подключение к GitHub</h1>
-    <p>Чтобы сохранять сотрудников и загружать фотографии, сервису нужен токен GitHub
-       с доступом <b>только к этому репозиторию</b>. Токен хранится в зашифрованном виде
-       в этом браузере и никуда больше не передаётся.</p>
+    <h1>Подключение сохранения</h1>
+    <p>Чтобы сервис мог сохранять данные (у всех сотрудников), нужен токен GitHub
+       с доступом <b>только к этому репозиторию</b>. Токен будет храниться в репозитории
+       в зашифрованном виде — расшифровать его могут только вошедшие сотрудники.</p>
     <details class="instructions" open>
       <summary>Как создать токен (2 минуты)</summary>
       <ol>
@@ -52,7 +54,7 @@
   </div>
 </div>
 
-<!-- ОСНОВНОЙ ЭКРАН -->
+<!-- ЭКРАН АДМИНИСТРАТОРА -->
 <div id="screen-main" class="screen hidden">
   <header class="topbar">
     <div class="topbar-brand">
@@ -65,7 +67,9 @@
     </nav>
     <div class="topbar-right">
       <span id="mode-badge" class="badge hidden"></span>
+      <button id="btn-token" class="icon-btn" title="GitHub-токен (сохранение)">⚙</button>
       <button id="btn-refresh" class="icon-btn" title="Перечитать данные из репозитория">⟳</button>
+      <span id="whoami" class="muted small-text"></span>
       <button id="btn-logout" class="secondary small">Выйти</button>
     </div>
   </header>
@@ -75,25 +79,90 @@
       <div class="toolbar">
         <input type="search" id="emp-search" placeholder="Поиск по имени, должности, email…">
         <select id="emp-dept-filter"><option value="">Все отделы</option></select>
-        <button id="btn-add-emp" class="primary">+ Добавить сотрудника</button>
+        <button id="btn-add-emp" class="primary">+ Пригласить сотрудника</button>
       </div>
       <div id="emp-list" class="emp-list"></div>
-      <div id="emp-empty" class="empty hidden">Сотрудников пока нет — добавьте первого.</div>
+      <div id="emp-empty" class="empty hidden">Сотрудников пока нет — пригласите первого.</div>
     </section>
 
     <section id="tab-templates" class="hidden">
+      <div class="toolbar">
+        <span class="muted">Шаблоны подписей: соцсети и ссылки настраиваются на карточке,
+          остальное — кнопкой «Настроить».</span>
+        <span class="flex-spacer"></span>
+        <button id="btn-add-tpl" class="primary">+ Новый шаблон</button>
+      </div>
       <div id="tpl-list"></div>
-      <p class="muted note">Макет шаблонов (структура, цвета, отступы) меняется через Claude —
-         правкой файлов <code>js/templates.js</code> и <code>data/templates.json</code> в репозитории.
-         Здесь настраиваются соцсети и их ссылки.</p>
+      <p class="muted note">Макет (структура, вёрстка) шаблонов меняется через Claude —
+         правкой <code>js/templates.js</code> в репозитории.</p>
     </section>
   </main>
 </div>
 
-<!-- МОДАЛ: РЕДАКТОР СОТРУДНИКА -->
+<!-- ЭКРАН ПОЛЬЗОВАТЕЛЯ: МОЯ ПОДПИСЬ -->
+<div id="screen-my" class="screen hidden">
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="assets/logo.png" alt="EstateCRM">
+      <span>Моя подпись</span>
+    </div>
+    <div class="topbar-right">
+      <span id="my-mode-badge" class="badge hidden"></span>
+      <button id="my-refresh" class="icon-btn" title="Обновить данные">⟳</button>
+      <span id="my-whoami" class="muted small-text"></span>
+      <button id="my-logout" class="secondary small">Выйти</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="my-grid">
+      <section class="card my-form">
+        <h2>Мои данные</h2>
+        <div class="photo-row">
+          <div class="photo-preview" id="my-photo-preview"><span>Фото</span></div>
+          <div class="photo-actions">
+            <label class="secondary btn-like" for="my-photo-input">Загрузить фото…</label>
+            <input type="file" id="my-photo-input" accept="image/*" hidden>
+            <button type="button" id="my-photo-recrop" class="secondary hidden">Изменить кадр</button>
+          </div>
+        </div>
+        <form id="my-form">
+          <div class="grid2">
+            <label id="l-mf-firstName">Имя<input type="text" id="mf-firstName"></label>
+            <label id="l-mf-lastName">Фамилия<input type="text" id="mf-lastName"></label>
+            <label id="l-mf-position">Должность<input type="text" id="mf-position"></label>
+            <label id="l-mf-department">Отдел<input type="text" id="mf-department"></label>
+            <label id="l-mf-mobile">Мобильный телефон<input type="tel" id="mf-mobile" placeholder="+7 9xx xxx-xx-xx"></label>
+            <label id="l-mf-email">Email<input type="email" id="mf-email"></label>
+            <label>Личный LinkedIn (необязательно)<input type="url" id="mf-linkedin" placeholder="https://linkedin.com/in/…"></label>
+          </div>
+          <div class="row end">
+            <button type="submit" class="primary" id="my-save">Сохранить</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card my-sig">
+        <h2>Предпросмотр</h2>
+        <div id="my-missing" class="warn-box hidden"></div>
+        <div class="row gap sig-toolbar">
+          <div class="segmented" id="my-seg">
+            <button type="button" class="seg active" data-width="600">Десктоп</button>
+            <button type="button" class="seg" data-width="375">Мобильный</button>
+          </div>
+        </div>
+        <div class="sig-preview-wrap"><iframe id="my-preview" title="Превью подписи"></iframe></div>
+        <h3>Установить подпись</h3>
+        <div id="my-clients" class="client-cards"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- МОДАЛ: РЕДАКТОР СОТРУДНИКА (администратор) -->
 <div id="modal-emp" class="modal hidden">
   <div class="modal-box">
-    <h2 id="emp-form-title">Новый сотрудник</h2>
+    <h2 id="emp-form-title">Приглашение сотрудника</h2>
     <form id="emp-form">
       <div class="photo-row">
         <div class="photo-preview" id="emp-photo-preview"><span>Фото</span></div>
@@ -101,19 +170,44 @@
           <label class="secondary btn-like" for="emp-photo-input">Загрузить фото…</label>
           <input type="file" id="emp-photo-input" accept="image/*" hidden>
           <button type="button" id="emp-photo-recrop" class="secondary hidden">Изменить кадр</button>
-          <p class="muted small-text">Фото будет обрезано до квадрата 65×65 (хранится 260×260 для Retina).</p>
+          <p class="muted small-text">Фото может загрузить и сам сотрудник в личном кабинете.</p>
         </div>
       </div>
       <div class="grid2">
         <label>Имя *<input type="text" id="f-firstName" required></label>
         <label>Фамилия *<input type="text" id="f-lastName" required></label>
-        <label>Должность *<input type="text" id="f-position" required></label>
+        <label>Должность<input type="text" id="f-position"></label>
         <label>Отдел<input type="text" id="f-department" list="dept-list"><datalist id="dept-list"></datalist></label>
         <label>Мобильный телефон<input type="tel" id="f-mobile" placeholder="+7 9xx xxx-xx-xx"></label>
         <label>Email *<input type="email" id="f-email" required placeholder="i.familiya@estatecrm.io"></label>
         <label>Личный LinkedIn (необязательно)<input type="url" id="f-linkedin" placeholder="https://linkedin.com/in/…"></label>
         <label>Шаблон подписи *<select id="f-template" required></select></label>
       </div>
+
+      <fieldset class="access-box">
+        <legend>Доступ в сервис</legend>
+        <div id="acc-none">
+          <label class="cb"><input type="checkbox" id="f-invite" checked>
+            Создать код доступа и подготовить приглашение на email</label>
+          <label class="inline-select">Роль
+            <select id="f-role">
+              <option value="user">Пользователь — видит и редактирует только свою подпись</option>
+              <option value="admin">Администратор — полный доступ</option>
+            </select>
+          </label>
+        </div>
+        <div id="acc-linked" class="hidden">
+          <p class="small-text">Вход по email: <b id="acc-email"></b></p>
+          <label class="inline-select">Роль
+            <select id="f-role2">
+              <option value="user">Пользователь</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </label>
+          <button type="button" id="acc-reset" class="secondary small">Сбросить код доступа</button>
+        </div>
+      </fieldset>
+
       <div class="row gap end">
         <button type="button" id="emp-delete" class="danger hidden">Удалить</button>
         <span class="flex-spacer"></span>
@@ -121,6 +215,25 @@
         <button type="submit" class="primary" id="emp-save">Сохранить</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- МОДАЛ: ПРИГЛАШЕНИЕ ГОТОВО -->
+<div id="modal-invite" class="modal hidden">
+  <div class="modal-box invite-box">
+    <h2>Приглашение готово</h2>
+    <p>Сотрудник: <b id="inv-name"></b> · вход по email <b id="inv-email"></b></p>
+    <div class="code-box" id="inv-code"></div>
+    <p class="muted small-text">Это личный код доступа сотрудника. Отправьте его вместе с приглашением.
+       Если код потеряется — его можно сбросить в карточке сотрудника.</p>
+    <div class="row gap wrap">
+      <a id="inv-mailto" class="primary btn-like" href="#">Открыть письмо в почтовой программе</a>
+      <button id="inv-copy-text" class="secondary">Скопировать текст приглашения</button>
+      <button id="inv-copy-code" class="secondary">Скопировать код</button>
+    </div>
+    <div class="row end">
+      <button id="inv-close" class="secondary">Закрыть</button>
+    </div>
   </div>
 </div>
 
@@ -141,13 +254,14 @@
   </div>
 </div>
 
-<!-- МОДАЛ: ПОДПИСЬ СОТРУДНИКА -->
+<!-- МОДАЛ: ПОДПИСЬ СОТРУДНИКА (администратор) -->
 <div id="modal-sig" class="modal hidden">
   <div class="modal-box sig-box">
     <div class="row space-between">
       <h2 id="sig-title">Подпись</h2>
       <button type="button" id="sig-close" class="icon-btn" title="Закрыть">✕</button>
     </div>
+    <div id="sig-missing" class="warn-box hidden"></div>
     <div class="row gap sig-toolbar">
       <div class="segmented">
         <button type="button" class="seg active" data-width="600">Десктоп</button>
@@ -159,6 +273,39 @@
     <div class="sig-preview-wrap"><iframe id="sig-preview" title="Превью подписи"></iframe></div>
     <h3>Установка подписи</h3>
     <div id="sig-clients" class="client-cards"></div>
+  </div>
+</div>
+
+<!-- МОДАЛ: КОНСТРУКТОР ШАБЛОНА (администратор) -->
+<div id="modal-tpl" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="tpl-form-title">Новый шаблон</h2>
+    <form id="tpl-form">
+      <div class="grid2">
+        <label>Название шаблона *<input type="text" id="t-name" required></label>
+        <label>Приветствие<input type="text" id="t-greeting" placeholder="С уважением,"></label>
+        <label>Компания (после должности)<input type="text" id="t-companyName"></label>
+        <label>Телефон компании<input type="tel" id="t-companyPhone"></label>
+        <label>Сайт — текст<input type="text" id="t-webLabel" placeholder="www.estatecrm.io"></label>
+        <label>Сайт — ссылка<input type="url" id="t-webUrl" placeholder="https://…"></label>
+        <label>Цвет акцента<input type="color" id="t-accent" value="#1D325C"></label>
+        <label>Цвет текста<input type="color" id="t-text" value="#212121"></label>
+      </div>
+      <div class="row gap" style="margin-top:12px;">
+        <label class="cb"><input type="checkbox" id="t-btnEnabled"> Кнопка «Meet me on Zoom»</label>
+        <input type="url" id="t-btnUrl" placeholder="https://calendly.com/…" style="flex:1;">
+      </div>
+      <fieldset class="access-box">
+        <legend>Обязательные поля — без них подпись нельзя установить</legend>
+        <div id="t-required" class="req-grid"></div>
+      </fieldset>
+      <div class="row gap end">
+        <button type="button" id="tpl-delete" class="danger hidden">Удалить шаблон</button>
+        <span class="flex-spacer"></span>
+        <button type="button" id="tpl-cancel" class="secondary">Отмена</button>
+        <button type="submit" class="primary" id="tpl-save-btn">Сохранить</button>
+      </div>
+    </form>
   </div>
 </div>
 

@@ -16,6 +16,50 @@ export const NETWORKS = [
   { id: 'twitter',   label: 'Twitter/X', icon: 'assets/icons/social/twitter.png' },
 ];
 
+// Поля сотрудника, которые администратор может пометить обязательными в шаблоне.
+export const EMPLOYEE_FIELDS = [
+  { id: 'firstName',  label: 'Имя' },
+  { id: 'lastName',   label: 'Фамилия' },
+  { id: 'position',   label: 'Должность' },
+  { id: 'department', label: 'Отдел' },
+  { id: 'mobile',     label: 'Мобильный телефон' },
+  { id: 'email',      label: 'Email' },
+  { id: 'photo',      label: 'Фотография' },
+];
+
+// Незаполненные обязательные поля шаблона — пока список не пуст,
+// кнопки установки подписи неактивны.
+export function missingRequired(template, employee) {
+  const req = template.config.required || [];
+  return EMPLOYEE_FIELDS.filter((f) => {
+    if (!req.includes(f.id)) return false;
+    if (f.id === 'photo') return !employee.photo;
+    return !String(employee[f.id] || '').trim();
+  });
+}
+
+// Конфиг по умолчанию для нового шаблона, создаваемого администратором.
+export function defaultTemplateConfig() {
+  return {
+    required: ['firstName', 'lastName', 'position', 'email'],
+    greeting: 'С уважением,',
+    companyName: 'EstateCRM',
+    logo: { src: 'assets/logo.png', width: 169, height: 29, alt: 'EstateCRM', href: 'https://www.estatecrm.io' },
+    companyPhone: '+7 495 256-22-25',
+    website: { label: 'www.estatecrm.io', url: 'https://www.estatecrm.io' },
+    colors: { accent: '#1D325C', text: '#212121' },
+    socials: NETWORKS.map((n) => ({ network: n.id, enabled: false, url: '', perEmployee: false })),
+    button: {
+      enabled: false,
+      image: 'assets/icons/zoom-button.png',
+      width: 174,
+      height: 39,
+      url: '',
+      alt: 'Meet me on Zoom',
+    },
+  };
+}
+
 export function escapeHtml(s) {
   return String(s || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

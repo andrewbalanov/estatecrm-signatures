@@ -221,6 +221,69 @@ code { background: #eef1f7; padding: 1px 6px; border-radius: 4px; font-size: 13p
 .client-card li { margin: 4px 0; }
 .client-card .cc-extra { margin-top: 8px; }
 
+/* ---------- Личный кабинет ---------- */
+.my-grid { display: grid; grid-template-columns: 400px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .my-grid { grid-template-columns: 1fr; } }
+.my-form h2, .my-sig h2 { margin: 0 0 16px; color: var(--accent); font-size: 19px; }
+.my-sig h3 { color: var(--accent); margin: 20px 0 10px; }
+label.req::after { content: " *"; color: var(--danger); font-weight: 700; }
+label.miss input { border-color: #e5a09a; background: #fff7f6; }
+
+/* ---------- Предупреждение об обязательных полях ---------- */
+.warn-box {
+  background: #fff4e0;
+  border: 1px solid #f5d9a8;
+  color: #8a5a00;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Доступ / роль ---------- */
+.access-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px 14px;
+  margin: 16px 0 4px;
+}
+.access-box legend { font-size: 13px; font-weight: 700; color: var(--accent); padding: 0 6px; }
+.access-box .cb { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; margin-bottom: 10px; }
+.inline-select { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.inline-select select { flex: 1; }
+#acc-linked { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+#acc-linked p { margin: 0; }
+
+/* ---------- Приглашение ---------- */
+.invite-box { max-width: 560px; }
+.code-box {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 1px;
+  text-align: center;
+  background: #f2f5fb;
+  border: 2px dashed var(--accent-light);
+  color: var(--accent);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 14px 0;
+  user-select: all;
+}
+.row.wrap { flex-wrap: wrap; }
+.role-chip {
+  font-size: 12px; border-radius: 20px; padding: 3px 10px; white-space: nowrap;
+}
+.role-chip.admin { background: #e8f0fe; color: #1a56b8; border: 1px solid #c4d7f5; }
+.role-chip.user { background: #e9f7ef; color: #1e7a45; border: 1px solid #c6e8d3; }
+.role-chip.none { background: #f1f2f4; color: var(--muted); border: 1px solid var(--border); }
+
+/* ---------- Конструктор шаблонов ---------- */
+.req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 560px) { .req-grid { grid-template-columns: 1fr; } }
+.req-grid label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.tpl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+input[type="color"] { padding: 3px; height: 42px; cursor: pointer; }
+
 /* ---------- Тост ---------- */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

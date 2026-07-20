@@ -5,6 +5,7 @@
       "name": "EstateCRM — основной",
       "renderer": "estatecrm-classic",
       "config": {
+        "required": ["firstName", "lastName", "position", "email"],
         "greeting": "С уважением,",
         "companyName": "EstateCRM",
         "logo": {
