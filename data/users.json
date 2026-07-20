@@ -100,13 +100,13 @@
       "displayName": "Роман Язаджи",
       "role": "user",
       "invite": {
-        "salt": "htToc3KwHBXIjaCV0v0tXQ==",
-        "verifier": "EY3/EzqrsXr8Me+EgQzZ+4WqXTrttVMAHTJnjSZlJ5s=",
+        "salt": "XH9zDcmElGfFuHQY3nUiNA==",
+        "verifier": "EYQbcuHPAJY5NxIr9xLaSCnZ2LWi1FIhwYO8GA58aQ8=",
         "encDataKey": {
           "v": 1,
           "alg": "AES-256-GCM",
-          "iv": "MMwCQsLsZzHwe6dI",
-          "ct": "rh196xQO2CQYMhPF/qvqI4esySFV341d8LGG1LTR/rUZYTbOf0oQG0K7oyUDtd5B9o2YdgoChuXo357s"
+          "iv": "rCFOvJa8lfN3iIZR",
+          "ct": "h35pkn8+7/lFb45Dk39ZrBs+/Ity8RBMGvKTIKP74/PaMq/BcaFO6jBgzLIMRFNSVEfwW5A67CE3w/aO"
         },
         "createdAt": "2026-07-20"
       },
