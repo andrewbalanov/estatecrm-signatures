@@ -124,12 +124,12 @@
           {
             "network": "linkedin",
             "enabled": false,
-            "url": "https://www.linkedin.com/in/andrewbalanov",
+            "url": "",
             "perEmployee": false
           },
           {
             "network": "telegram",
-            "enabled": true,
+            "enabled": false,
             "url": "",
             "perEmployee": false
           },
