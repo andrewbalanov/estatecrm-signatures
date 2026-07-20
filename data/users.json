@@ -26,18 +26,15 @@
       "email": "l.morozova@trace-it.ru",
       "displayName": "Лина Морозова",
       "role": "user",
-      "invite": {
-        "salt": "CPJzbDGOKYg6dTbPosCBiA==",
-        "verifier": "IQ+ICPBMp0NA7olsiktxi7O5BXutJPaKVdgn2Uf36t0=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "wJgFiG0q6/1joaJA",
-          "ct": "TlZWxkriBh8r/xcYYV0qHBfaU97CJ8tWqLlXw0I68jg8/quR8YF8E/dAlItP/uz0ubamIB854CIh5NtZ"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "0IhIPyuI/dQPXHncw83LGw==",
+      "verifier": "ObHWMyEoK7PCEE9r1Iz3I2jBqmARgj56Xv0SdQCqonk=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "UScUQMr5h1d3Kf8X",
+        "ct": "XKFDJ4cZ4HlTLc9j6OztxswfcMTK6lWV18oSi5yclhla1J5uHhmNRdj5boEbru5FpLeARCHaVYCWUpoR"
+      }
     },
     {
       "id": "u-d80efc97",
