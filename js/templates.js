@@ -178,15 +178,17 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
 </td></tr>`
     : '';
 
-  // Начало подписи: отступ, «полосочка» (—) и ещё отступ — до «С уважением, …»
-  const spacerRow = `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;">&nbsp;</td></tr>`;
-  const topSpacer = spacerRow
-    + `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">—</td></tr>`
-    + spacerRow;
-
-  const greeting = cfg.greeting
-    ? `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
-    : '';
+  // Начало подписи — ОБЫЧНЫЕ абзацы (plain text), вне таблицы: пустая строка,
+  // «полосочка», пустая строка, «С уважением, …». В письме их можно
+  // редактировать и удалять построчно, как обычный текст.
+  const pStyle = `margin:0;font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};`;
+  const head = `<p style="${pStyle}">&nbsp;</p>
+<p style="${pStyle}">—</p>
+<p style="${pStyle}">&nbsp;</p>`
+    + (cfg.greeting
+      ? `
+<p style="margin:0 0 14px 0;font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</p>`
+      : '');
 
   let logoSrc = cfg.logo && cfg.logo.src ? absUrl(cfg.logo.src, baseUrl) : '';
   if (logoSrc && cfg.logo.v > 1 && !/^(data:|blob:)/.test(cfg.logo.src)) logoSrc += `?v=${cfg.logo.v}`;
@@ -206,8 +208,8 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
     ? `<tr><td style="padding:16px 0 0 0;"><a href="${escapeHtml(cfg.button.url)}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;display:block;font-size:0;"><img src="${absUrl(cfg.button.image, baseUrl)}" width="${cfg.button.width}" height="${cfg.button.height}" alt="${escapeHtml(cfg.button.alt || '')}" style="border:0;display:block;width:${cfg.button.width}px;height:${cfg.button.height}px;"></a></td></tr>`
     : '';
 
-  return `<div dir="ltr"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-${topSpacer}${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${fam};color:${textColor};">
+  return `<div dir="ltr">${head}<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${fam};color:${textColor};">
 <tr>${photoCell}<td valign="top" style="vertical-align:top;${photo ? 'padding:0 0 0 12px;' : ''}">
 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
 <tr><td style="font-family:${fam};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${fam};color:${accent};font-size:${px(18)}px;white-space:nowrap;">${escapeHtml(fullName)}</span>${titleLine ? `<br><span style="font-weight:bold;font-family:${fam};color:${textColor};font-size:${px(14)}px;">${titleLine}</span>` : ''}</p></td>
