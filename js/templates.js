@@ -144,6 +144,9 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
     `<a href="${escapeHtml(s.url)}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${absUrl(s.icon, baseUrl)}" width="25" height="25" alt="${s.label}" style="width:25px;height:25px;border:0;display:inline-block;"></a>`
   ).join('&nbsp;');
 
+  // Пустая строка-отступ в самом начале подписи (до «С уважением, …»)
+  const topSpacer = `<tr><td style="font-family:${FONT};font-size:14px;line-height:1.4;color:${textColor};">&nbsp;</td></tr>`;
+
   const greeting = cfg.greeting
     ? `<tr><td style="font-family:${FONT};font-size:14px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
     : '';
@@ -167,7 +170,7 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
     : '';
 
   return `<div dir="ltr"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${FONT};color:${textColor};">
+${topSpacer}${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${FONT};color:${textColor};">
 <tr>${photoCell}<td valign="top" style="vertical-align:top;${photo ? 'padding:0 0 0 12px;' : ''}">
 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
 <tr><td style="font-family:${FONT};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${FONT};color:${accent};font-size:18px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${FONT};color:${textColor};font-size:14px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
