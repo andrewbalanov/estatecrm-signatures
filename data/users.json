@@ -83,18 +83,15 @@
       "email": "a.svistunov@trace-it.ru",
       "displayName": "Александр Свистунов",
       "role": "user",
-      "invite": {
-        "salt": "IDHcN2G8vRlXkhnmAiwdyQ==",
-        "verifier": "k2cJBvh2bY+SzAu05vHhJJcPEXSniGwaRUtRFnm4Sis=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "/lyatHCS/SGCqNOm",
-          "ct": "kU4fzj1VPLn77ehem0ygH1GYJIxcNx0TGmKSoPW/+ZpvNx4T1aIfqAa9lWnjaPubx+g6U+xEkcc60hNi"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "RhXkfIVfhWSCnO/RlJeIXg==",
+      "verifier": "GLKWZEYy4lENiYOP9SYz0AJTFBFDvGbk6rLyg9APUIA=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "8s8kmXE2eqN35BQP",
+        "ct": "MzGREMJhUaTd0T7fxdMDImTvYBL7A1LgiKGZU6MV4rAsQmKQf2WJtQARKxpGAAdMWw0usdi/oavpr1rV"
+      }
     },
     {
       "id": "u-e34fa0a8",
