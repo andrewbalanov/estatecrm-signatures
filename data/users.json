@@ -308,6 +308,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-1a5e1bd0",
+      "employeeId": "emp-3f66305b",
+      "email": "m.tazyukov@trace-it.ru",
+      "displayName": "Марат Тазюков",
+      "role": "user",
+      "invite": {
+        "salt": "95Tz1hfTX4dgRt7t7Yswdg==",
+        "verifier": "U6YTGUBzFbscHcMvZIj5T1goOCbreKe2ZwH5Uehntq4=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "s+rhj7R9heFMYHq0",
+          "ct": "IXqCkldCG0CZXVfJoaeKYgug4JD3P2eWatAEfr8uC5GpX9+hwvYhrtYTf0xH64iYqPtM8VZAl4YLWD6J"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
