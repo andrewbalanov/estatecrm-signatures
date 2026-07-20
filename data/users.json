@@ -346,6 +346,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-eee363bd",
+      "employeeId": "emp-3f9cd731",
+      "email": "a.olyakov@trace-it.ru",
+      "displayName": "Александр Оляков",
+      "role": "user",
+      "invite": {
+        "salt": "kcEmQkdqMJ47szUSCqCL8g==",
+        "verifier": "JDtOLwIfFL5XBl2DIggUaLQzfIG2rUqUU1OqINy/6mg=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "dujU+LUnzFXk5OUV",
+          "ct": "rvHYWlEHBVn8I0VOMIL8+fswAHCzho2ArII5x8OfIr+EuiilzEd07DBYe7tepMm1/KuKguM5OLNr8yFi"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
