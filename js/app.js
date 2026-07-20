@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=6';
-import * as cr from './crypto.js?v=6';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=6';
+import { BASE_URL } from './config.js?v=7';
+import * as cr from './crypto.js?v=7';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=7';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig,
-} from './templates.js?v=6';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=6';
+} from './templates.js?v=7';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=7';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
