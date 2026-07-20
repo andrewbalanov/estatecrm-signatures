@@ -9,7 +9,6 @@
           "firstName",
           "lastName",
           "position",
-          "mobile",
           "email",
           "photo"
         ],
