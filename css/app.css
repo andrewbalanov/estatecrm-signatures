@@ -283,6 +283,19 @@ label.miss input { border-color: #e5a09a; background: #fff7f6; }
 .req-grid label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .tpl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 input[type="color"] { padding: 3px; height: 42px; cursor: pointer; }
+.logo-row { display: flex; gap: 18px; align-items: center; }
+.logo-preview {
+  min-width: 170px; max-width: 220px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(45deg, #f0f2f7 25%, transparent 25%, transparent 75%, #f0f2f7 75%),
+    linear-gradient(45deg, #f0f2f7 25%, #fff 25%, #fff 75%, #f0f2f7 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px; overflow: hidden;
+}
+.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+@media (max-width: 560px) { .logo-row { flex-direction: column; align-items: flex-start; } }
 
 /* ---------- Тост ---------- */
 .toast {

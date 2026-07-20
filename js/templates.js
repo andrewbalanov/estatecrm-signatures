@@ -149,8 +149,10 @@ function renderEstateCrmClassic(template, employee, baseUrl) {
     ? `<tr><td style="font-family:${FONT};font-size:14px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
     : '';
 
-  const logo = cfg.logo && cfg.logo.src
-    ? `<tr><td style="padding:0 0 16px 0;"><a href="${escapeHtml(cfg.logo.href || '#')}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${absUrl(cfg.logo.src, baseUrl)}" width="${cfg.logo.width}" height="${cfg.logo.height}" alt="${escapeHtml(cfg.logo.alt || '')}" style="border:0;display:block;width:${cfg.logo.width}px;height:${cfg.logo.height}px;"></a></td></tr>`
+  let logoSrc = cfg.logo && cfg.logo.src ? absUrl(cfg.logo.src, baseUrl) : '';
+  if (logoSrc && cfg.logo.v > 1 && !/^(data:|blob:)/.test(cfg.logo.src)) logoSrc += `?v=${cfg.logo.v}`;
+  const logo = logoSrc
+    ? `<tr><td style="padding:0 0 16px 0;"><a href="${escapeHtml(cfg.logo.href || '#')}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${logoSrc}" width="${cfg.logo.width}" height="${cfg.logo.height}" alt="${escapeHtml(cfg.logo.alt || '')}" style="border:0;display:block;width:${cfg.logo.width}px;height:${cfg.logo.height}px;"></a></td></tr>`
     : '';
 
   const photoCell = photo

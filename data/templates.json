@@ -105,11 +105,12 @@
         "greeting": "С уважением,",
         "companyName": "Trace",
         "logo": {
-          "src": "assets/logo.png",
-          "width": 169,
-          "height": 29,
-          "alt": "EstateCRM",
-          "href": "https://www.estatecrm.io"
+          "src": "assets/logos/tpl-41b4075b.png",
+          "width": 102,
+          "height": 36,
+          "alt": "Trace",
+          "href": "https://www.trace-it.ru",
+          "v": 1
         },
         "companyPhone": "+7 495 256-22-25",
         "website": {

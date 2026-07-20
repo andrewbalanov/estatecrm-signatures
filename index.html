@@ -7,7 +7,7 @@
 <title>EstateCRM — Подписи</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D325C'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/cropper.min.css">
-<link rel="stylesheet" href="css/app.css?v=2">
+<link rel="stylesheet" href="css/app.css?v=3">
 </head>
 <body>
 
@@ -296,6 +296,21 @@
         <input type="url" id="t-btnUrl" placeholder="https://calendly.com/…" style="flex:1;">
       </div>
       <fieldset class="access-box">
+        <legend>Логотип компании</legend>
+        <div class="logo-row">
+          <div class="logo-preview" id="t-logo-preview"><span class="muted">Нет логотипа</span></div>
+          <div class="photo-actions">
+            <label class="secondary btn-like" for="t-logo-input">Загрузить логотип…</label>
+            <input type="file" id="t-logo-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+            <label class="inline-select">Высота в подписи
+              <input type="number" id="t-logo-height" min="20" max="60" step="1" value="32" style="width:80px;"> px</label>
+            <label class="cb" style="margin-bottom:0;"><input type="checkbox" id="t-logo-enabled" checked> Показывать логотип в подписи</label>
+          </div>
+        </div>
+        <p class="muted small-text">Лучше всего — PNG с прозрачным фоном. Ширина подстраивается автоматически,
+          ссылка логотипа ведёт на «Сайт — ссылка».</p>
+      </fieldset>
+      <fieldset class="access-box">
         <legend>Обязательные поля — без них подпись нельзя установить</legend>
         <div id="t-required" class="req-grid"></div>
       </fieldset>
@@ -312,6 +327,6 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="vendor/cropper.min.js"></script>
-<script type="module" src="js/app.js?v=2"></script>
+<script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>

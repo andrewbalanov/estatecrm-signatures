@@ -5,14 +5,14 @@
 //   Для каждого пользователя dataKey зашифрован его личным ключом, выведенным
 //   из кода доступа (PBKDF2). users.json хранит только соли, верификаторы и конверты —
 //   по ним нельзя восстановить ни коды, ни данные.
-import { BASE_URL } from './config.js?v=2';
-import * as cr from './crypto.js?v=2';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=2';
+import { BASE_URL } from './config.js?v=3';
+import * as cr from './crypto.js?v=3';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=3';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig,
-} from './templates.js?v=2';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=2';
+} from './templates.js?v=3';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=3';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -33,6 +33,7 @@ const state = {
   editingId: null,
   editingTplId: null,
   pendingPhoto: null, // { blob, dataUrl } — обрезанное фото до сохранения
+  pendingLogo: null,  // { blob, dataUrl, ratio } — логотип шаблона до сохранения
   cropper: null,
   cropBaseZoom: null,
   cropSourceUrl: null,
@@ -811,11 +812,24 @@ function renderTemplatesTab() {
 // ---------- Конструктор шаблона ----------
 $('#btn-add-tpl').addEventListener('click', () => openTplModal(null));
 
+function tplLogoPreviewSrc(cfg) {
+  if (!cfg.logo || !cfg.logo.src) return null;
+  if (/^(data:|blob:)/.test(cfg.logo.src)) return cfg.logo.src;
+  return cfg.logo.src + (cfg.logo.v > 1 ? `?v=${cfg.logo.v}` : '');
+}
+
 function openTplModal(id) {
   state.editingTplId = id;
+  state.pendingLogo = null;
   const tpl = state.templates.find((t) => t.id === id);
   const cfg = tpl ? tpl.config : defaultTemplateConfig();
   $('#tpl-form-title').textContent = tpl ? `Шаблон: ${tpl.name}` : 'Новый шаблон';
+  const logoSrc = tplLogoPreviewSrc(cfg);
+  $('#t-logo-preview').innerHTML = logoSrc
+    ? `<img src="${logoSrc}" alt="">`
+    : '<span class="muted">Нет логотипа</span>';
+  $('#t-logo-enabled').checked = !!logoSrc;
+  $('#t-logo-height').value = cfg.logo?.height || 32;
   $('#t-name').value = tpl ? tpl.name : '';
   $('#t-greeting').value = cfg.greeting || '';
   $('#t-companyName').value = cfg.companyName || '';
@@ -845,6 +859,37 @@ function openTplModal(id) {
 
 $('#tpl-cancel').addEventListener('click', () => $('#modal-tpl').classList.add('hidden'));
 
+// Логотип шаблона: нормализуем в PNG высотой до 120px (запас для Retina),
+// ширина в подписи считается по пропорциям от выбранной высоты.
+$('#t-logo-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const h = Math.min(120, img.naturalHeight);
+      const w = Math.round(img.naturalWidth * (h / img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/png');
+      canvas.toBlob((blob) => {
+        state.pendingLogo = { blob, dataUrl, ratio: img.naturalWidth / img.naturalHeight };
+        $('#t-logo-preview').innerHTML = `<img src="${dataUrl}" alt="">`;
+        $('#t-logo-enabled').checked = true;
+      }, 'image/png');
+    };
+    img.onerror = () => toast('Не удалось прочитать файл логотипа.', true);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
 $('#tpl-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!state.store.canWrite) { toast('Режим просмотра: сохранение недоступно.', true); return; }
@@ -868,6 +913,37 @@ $('#tpl-form').addEventListener('submit', async (e) => {
     cfg.button.enabled = $('#t-btnEnabled').checked;
     cfg.button.url = $('#t-btnUrl').value.trim();
     cfg.required = $$('#t-required input:checked').map((i) => i.value);
+
+    // Логотип
+    const logoHeight = Math.max(20, Math.min(60, parseInt($('#t-logo-height').value, 10) || 32));
+    if (!$('#t-logo-enabled').checked) {
+      cfg.logo = null;
+    } else if (state.pendingLogo) {
+      const prevV = cfg.logo?.v || 0;
+      let src;
+      if (state.store.isDev) {
+        src = state.pendingLogo.dataUrl;
+      } else {
+        src = `assets/logos/${tpl.id}.png`;
+        const bytes = new Uint8Array(await state.pendingLogo.blob.arrayBuffer());
+        await state.store.putFile(src, bytes, `Логотип шаблона: ${tpl.name}`);
+      }
+      cfg.logo = {
+        src,
+        width: Math.round(state.pendingLogo.ratio * logoHeight),
+        height: logoHeight,
+        alt: tpl.name,
+        href: cfg.website.url || '#',
+        v: prevV + 1,
+      };
+    } else if (cfg.logo && cfg.logo.src) {
+      // Логотип не менялся — обновляем высоту (ширина по прежним пропорциям) и ссылку
+      const ratio = cfg.logo.width / cfg.logo.height;
+      cfg.logo.height = logoHeight;
+      cfg.logo.width = Math.round(ratio * logoHeight);
+      cfg.logo.href = cfg.website.url || cfg.logo.href;
+      cfg.logo.alt = tpl.name;
+    }
     await saveTemplates(`${isNew ? 'Создан' : 'Обновлён'} шаблон: ${tpl.name}`);
     renderTemplatesTab();
     fillTemplateSelect();
