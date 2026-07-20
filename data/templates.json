@@ -9,7 +9,9 @@
           "firstName",
           "lastName",
           "position",
-          "email"
+          "mobile",
+          "email",
+          "photo"
         ],
         "greeting": "С уважением,",
         "companyName": "EstateCRM",
