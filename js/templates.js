@@ -12,7 +12,7 @@ export const NETWORKS = [
   { id: 'instagram', label: 'Instagram', icon: 'assets/icons/social/instagram.png' },
   { id: 'facebook',  label: 'Facebook',  icon: 'assets/icons/social/facebook.png' },
   { id: 'youtube',   label: 'YouTube',   icon: 'assets/icons/social/youtube.png' },
-  { id: 'vk',        label: 'VK',        icon: 'assets/icons/social/vk.png' },
+  { id: 'vk',        label: 'VK Video',  icon: 'assets/icons/social/vk.png' },
   { id: 'twitter',   label: 'Twitter/X', icon: 'assets/icons/social/twitter.png' },
 ];
 
