@@ -283,6 +283,24 @@ label.miss input { border-color: #e5a09a; background: #fff7f6; }
 .req-grid label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .tpl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 input[type="color"] { padding: 3px; height: 42px; cursor: pointer; }
+/* Выбор подписей сотрудника (админ) */
+.sig-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: #f8fafc; margin-bottom: 8px;
+}
+.sig-row .cb { margin-bottom: 0 !important; min-width: 170px; }
+.sig-row .sig-email { flex: 1; font-size: 13px; padding: 7px 9px; }
+.sig-row .sig-email:disabled { background: #f1f2f4; color: var(--muted); }
+
+/* Email текущей подписи в личном кабинете */
+.sig-email-label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  margin: 0 0 12px;
+}
+.link-box { font-size: 14px; letter-spacing: 0; word-break: break-all; user-select: all; }
+
 .logo-row { display: flex; gap: 18px; align-items: center; }
 .logo-preview {
   min-width: 170px; max-width: 220px; height: 64px;

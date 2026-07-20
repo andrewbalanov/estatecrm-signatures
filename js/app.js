@@ -1,23 +1,24 @@
-// Основная логика интерфейса (v2 — многопользовательский режим).
+// Основная логика интерфейса (v3 — приглашения по ссылке, несколько подписей).
 //
 // Криптосхема («конверт»):
 //   dataKey (случайный AES-256) шифрует employees.json.enc и GitHub-токен (encToken).
 //   Для каждого пользователя dataKey зашифрован его личным ключом, выведенным
-//   из кода доступа (PBKDF2). users.json хранит только соли, верификаторы и конверты —
-//   по ним нельзя восстановить ни коды, ни данные.
-import { BASE_URL } from './config.js?v=3';
-import * as cr from './crypto.js?v=3';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=3';
+//   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
+//   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
+//   и одноразовый invite-конверт удаляется.
+import { BASE_URL } from './config.js?v=4';
+import * as cr from './crypto.js?v=4';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=4';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig,
-} from './templates.js?v=3';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=3';
+} from './templates.js?v=4';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=4';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-const DEV = location.hash.includes('dev');
+const DEV = location.hash === '#dev';
 const SESSION_KEY = 'ecsig.session2';
 const LEGACY_TOKEN_KEY = 'ecsig.token';
 
@@ -30,6 +31,7 @@ const state = {
   usersDoc: null,     // содержимое data/users.json
   employees: [],
   templates: [],
+  inviteCtx: null,    // контекст принятия приглашения { me, doc, dataKeyRaw }
   editingId: null,
   editingTplId: null,
   pendingPhoto: null, // { blob, dataUrl } — обрезанное фото до сохранения
@@ -39,6 +41,9 @@ const state = {
   cropSourceUrl: null,
   cropTarget: 'emp',  // 'emp' (модал администратора) | 'my' (личный кабинет)
   sigEmployeeId: null,
+  sigIndex: 0,        // выбранная подпись в модале администратора
+  mySigs: [],         // рабочая копия подписей в личном кабинете
+  mySigIndex: 0,
 };
 
 // ---------- Служебное ----------
@@ -56,7 +61,7 @@ function hex8() {
   return [...cr.randomBytes(4)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Код доступа: 16 символов base58 (без похожих букв), ~93 бита энтропии.
+// Токен/код: 16 символов base58 (без похожих букв), ~93 бита энтропии.
 function genCode() {
   const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   let s = '';
@@ -69,7 +74,7 @@ function genCode() {
 }
 
 function showScreen(name) {
-  for (const id of ['login', 'token', 'main', 'my']) {
+  for (const id of ['login', 'setpass', 'token', 'main', 'my']) {
     $(`#screen-${id}`).classList.toggle('hidden', id !== name);
   }
 }
@@ -99,14 +104,24 @@ async function decryptObjFromDoc(key, obj) {
   return cr.decryptString(key, JSON.stringify(obj));
 }
 
-// ---------- Вход ----------
+// ---------- Вход и приглашения ----------
 async function fetchUsersDocPublic() {
   const res = await fetch(`data/users.json?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Не удалось загрузить список пользователей');
   return res.json();
 }
 
+function parseInviteHash() {
+  const m = location.hash.match(/^#invite=([A-Za-z0-9-]+)\.([A-Za-z0-9-]+)$/);
+  return m ? { userId: m[1], token: m[2] } : null;
+}
+
 async function init() {
+  const inv = parseInviteHash();
+  if (inv) {
+    await startInviteAccept(inv);
+    return;
+  }
   const saved = sessionStorage.getItem(SESSION_KEY);
   if (saved) {
     try {
@@ -128,6 +143,84 @@ async function init() {
   showScreen('login');
 }
 
+// Открыта персональная ссылка-приглашение: проверяем токен и предлагаем задать пароль.
+async function startInviteAccept({ userId, token }) {
+  showScreen('login');
+  const errEl = $('#login-error');
+  try {
+    const doc = await fetchUsersDocPublic();
+    const me = doc.users.find((u) => u.id === userId);
+    if (!me || !me.invite) {
+      throw new Error('Ссылка-приглашение недействительна или уже использована. Запросите новую у администратора.');
+    }
+    const derived = await cr.deriveKeys(token, me.invite.salt, doc.kdf.iterations);
+    if (derived.verifier !== me.invite.verifier) {
+      throw new Error('Ссылка-приглашение повреждена. Запросите новую у администратора.');
+    }
+    const dataKeyRaw = await decryptObjFromDoc(derived.encKey, me.invite.encDataKey);
+    state.inviteCtx = { me, doc, dataKeyRaw };
+    $('#setpass-name').textContent = me.displayName;
+    $('#setpass-email').textContent = me.email;
+    showScreen('setpass');
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+$('#setpass-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#setpass-btn');
+  const errEl = $('#setpass-error');
+  errEl.classList.add('hidden');
+  const p1 = $('#setpass-p1').value;
+  const p2 = $('#setpass-p2').value;
+  if (p1.length < 10) {
+    errEl.textContent = 'Пароль слишком короткий — нужно не меньше 10 символов.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (p1 !== p2) {
+    errEl.textContent = 'Пароли не совпадают.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  busy(btn, true, 'Сохраняю…');
+  try {
+    const { me, doc, dataKeyRaw } = state.inviteCtx;
+    const salt = cr.b64encode(cr.randomBytes(16));
+    const derived = await cr.deriveKeys(p1, salt, doc.kdf.iterations);
+    me.salt = salt;
+    me.verifier = derived.verifier;
+    me.encDataKey = await encryptObjForDoc(derived.encKey, dataKeyRaw);
+    delete me.invite;
+
+    state.usersDoc = doc;
+    state.me = me;
+    state.session = { userId: me.id, dataKeyRaw };
+    state.dataKey = await cr.importEncKey(dataKeyRaw);
+
+    await connectStore();
+    if (!state.store || !state.store.canWrite) {
+      throw new Error('Сохранение пароля недоступно — обратитесь к администратору.');
+    }
+    await saveUsers(`Установлен пароль: ${me.displayName}`);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
+    history.replaceState(null, '', location.pathname + location.search);
+    $('#setpass-p1').value = '';
+    $('#setpass-p2').value = '';
+    toast('Пароль сохранён — добро пожаловать!');
+    await enterApp();
+  } catch (err) {
+    console.error(err);
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    busy(btn, false);
+  }
+});
+
 $('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = $('#login-btn');
@@ -138,11 +231,16 @@ $('#login-form').addEventListener('submit', async (e) => {
     const email = $('#login-email').value.trim().toLowerCase();
     const doc = await fetchUsersDocPublic();
     const me = doc.users.find((u) => (u.email || '').toLowerCase() === email);
+    if (me && me.invite && !me.verifier) {
+      errEl.textContent = 'Вы ещё не установили пароль — откройте персональную ссылку-приглашение.';
+      errEl.classList.remove('hidden');
+      return;
+    }
     const derived = me
       ? await cr.deriveKeys($('#login-password').value, me.salt, doc.kdf.iterations)
       : null;
     if (!me || derived.verifier !== me.verifier) {
-      errEl.textContent = 'Неверный email или код доступа.';
+      errEl.textContent = 'Неверный email или пароль.';
       errEl.classList.remove('hidden');
       return;
     }
@@ -208,7 +306,6 @@ async function enterApp() {
 }
 
 // Токен из v1 хранился в localStorage, зашифрованный ключом администратора.
-// Соль администратора сохранена при миграции, поэтому ключ совпадает — переносим в репозиторий.
 async function tryLegacyTokenMigration() {
   const legacy = localStorage.getItem(LEGACY_TOKEN_KEY);
   if (!legacy || !state.userKeyRaw) return;
@@ -269,6 +366,22 @@ $('#btn-refresh').addEventListener('click', async () => { await loadAll(); toast
 $('#my-refresh').addEventListener('click', async () => { await loadAll(); fillMy(); toast('Данные обновлены.'); });
 
 // ---------- Данные ----------
+// Страховка от старых клиентов/данных: у каждого сотрудника — loginEmail и signatures[].
+function normalizeEmployees(list) {
+  for (const e of list) {
+    if (!e.loginEmail) e.loginEmail = e.email || '';
+    if (!Array.isArray(e.signatures) || !e.signatures.length) {
+      e.signatures = [{
+        templateId: e.templateId || (state.templates[0] && state.templates[0].id),
+        email: e.email || e.loginEmail,
+      }];
+    }
+    delete e.email;
+    delete e.templateId;
+  }
+  return list;
+}
+
 async function loadAll() {
   const usersFile = await state.store.getFile('data/users.json');
   if (usersFile) {
@@ -283,20 +396,19 @@ async function loadAll() {
   const empFile = await state.store.getFile('data/employees.json.enc');
   if (empFile) {
     const data = await cr.decryptJson(state.dataKey, empFile.text);
-    state.employees = data.employees || [];
+    state.employees = normalizeEmployees(data.employees || []);
   } else {
     state.employees = [];
   }
   if (isAdmin()) {
     renderEmployees();
     renderTemplatesTab();
-    fillTemplateSelect();
     fillDeptFilter();
   }
 }
 
 async function saveEmployees(message) {
-  const payload = await cr.encryptJson(state.dataKey, { employees: state.employees });
+  const payload = await cr.encryptJson(state.dataKey, { v: 3, employees: state.employees });
   await state.store.putFile('data/employees.json.enc', payload, message);
 }
 
@@ -342,6 +454,15 @@ function photoSrc(emp) {
   return emp.photo + (emp.photoVersion > 1 ? `?v=${emp.photoVersion}` : '');
 }
 
+// Представление сотрудника для конкретной подписи (email из подписи).
+function sigView(emp, sig) {
+  return { ...emp, email: (sig && sig.email) || emp.loginEmail };
+}
+
+function anySigNotReady(emp) {
+  return emp.signatures.some((s) => missingRequired(templateById(s.templateId), sigView(emp, s)).length > 0);
+}
+
 function renderEmployees() {
   const q = $('#emp-search').value.trim().toLowerCase();
   const dept = $('#emp-dept-filter').value;
@@ -350,7 +471,8 @@ function renderEmployees() {
   const filtered = state.employees.filter((e) => {
     if (dept && e.department !== dept) return false;
     if (!q) return true;
-    return [e.firstName, e.lastName, e.position, e.email, e.department]
+    return [e.firstName, e.lastName, e.position, e.loginEmail, e.department,
+      ...e.signatures.map((s) => s.email)]
       .join(' ').toLowerCase().includes(q);
   });
   $('#emp-empty').classList.toggle('hidden', filtered.length > 0);
@@ -360,26 +482,26 @@ function renderEmployees() {
     const src = photoSrc(emp);
     const user = userByEmployee(emp.id);
     const roleChip = user
-      ? `<span class="role-chip ${user.role}">${user.role === 'admin' ? 'Админ' : 'Пользователь'}</span>`
+      ? `<span class="role-chip ${user.role}">${user.role === 'admin' ? 'Админ' : 'Пользователь'}${user.invite ? ' · ждёт входа' : ''}</span>`
       : '<span class="role-chip none">Без доступа</span>';
-    const missing = missingRequired(templateById(emp.templateId), emp);
+    const tplNames = emp.signatures.map((s) => templateById(s.templateId)?.name || '—');
     row.innerHTML = `
       ${src ? `<img class="avatar" src="${src}" alt="">` : `<div class="avatar">${initials(emp)}</div>`}
       <div class="emp-info">
         <div class="emp-name"></div>
         <div class="emp-sub"></div>
       </div>
-      ${missing.length ? '<span class="role-chip none" title="Не заполнены обязательные поля">⚠ не готова</span>' : ''}
+      ${anySigNotReady(emp) ? '<span class="role-chip none" title="Не заполнены обязательные поля">⚠ не готова</span>' : ''}
       ${roleChip}
       <span class="chip"></span>
       <div class="emp-actions">
-        <button class="primary small act-sig">Подпись</button>
+        <button class="primary small act-sig">Подписи</button>
         <button class="secondary small act-edit">Изменить</button>
       </div>`;
     row.querySelector('.emp-name').textContent = `${emp.firstName} ${emp.lastName}`;
     row.querySelector('.emp-sub').textContent =
-      [emp.position, emp.department, emp.email].filter(Boolean).join(' · ');
-    row.querySelector('.chip').textContent = templateById(emp.templateId)?.name || '—';
+      [emp.position, emp.department, emp.loginEmail].filter(Boolean).join(' · ');
+    row.querySelector('.chip').textContent = tplNames.join(' + ');
     row.querySelector('.act-sig').addEventListener('click', () => openSigModal(emp.id));
     row.querySelector('.act-edit').addEventListener('click', () => openEmpModal(emp.id));
     list.appendChild(row);
@@ -396,16 +518,32 @@ function fillDeptFilter() {
   $('#dept-list').innerHTML = depts.map((d) => `<option value="${d}">`).join('');
 }
 
-function fillTemplateSelect() {
-  $('#f-template').innerHTML = state.templates
-    .map((t) => `<option value="${t.id}">${t.name}</option>`).join('');
-}
-
 $('#emp-search').addEventListener('input', renderEmployees);
 $('#emp-dept-filter').addEventListener('change', renderEmployees);
 $('#btn-add-emp').addEventListener('click', () => openEmpModal(null));
 
 // ---------- Редактор сотрудника (администратор) ----------
+function renderSigRows(emp) {
+  const wrap = $('#f-signatures');
+  wrap.innerHTML = '';
+  state.templates.forEach((tpl, idx) => {
+    const sig = emp?.signatures?.find((s) => s.templateId === tpl.id);
+    const row = document.createElement('div');
+    row.className = 'sig-row';
+    row.innerHTML = `
+      <label class="cb"><input type="checkbox" class="sig-on" value="${tpl.id}"> <span></span></label>
+      <input type="email" class="sig-email" placeholder="email в этой подписи — как для входа">`;
+    row.querySelector('.cb span').textContent = tpl.name;
+    const on = row.querySelector('.sig-on');
+    const emailInput = row.querySelector('.sig-email');
+    on.checked = emp ? !!sig : idx === 0; // у нового сотрудника — первый шаблон по умолчанию
+    emailInput.value = sig?.email || '';
+    emailInput.disabled = !on.checked;
+    on.addEventListener('change', () => { emailInput.disabled = !on.checked; });
+    wrap.appendChild(row);
+  });
+}
+
 function openEmpModal(id) {
   state.editingId = id;
   state.pendingPhoto = null;
@@ -419,16 +557,16 @@ function openEmpModal(id) {
   $('#f-position').value = emp?.position || '';
   $('#f-department').value = emp?.department || '';
   $('#f-mobile').value = emp?.mobile || '';
-  $('#f-email').value = emp?.email || '';
+  $('#f-email').value = emp?.loginEmail || '';
   $('#f-linkedin').value = emp?.socials?.linkedin || '';
-  if (emp) $('#f-template').value = emp.templateId;
+  renderSigRows(emp);
   $('#emp-delete').classList.toggle('hidden', !emp);
   $('#emp-photo-recrop').classList.add('hidden');
   $('#acc-none').classList.toggle('hidden', !!user);
   $('#acc-linked').classList.toggle('hidden', !user);
   $('#f-invite').checked = !emp;
   if (user) {
-    $('#acc-email').textContent = user.email;
+    $('#acc-email').textContent = user.email + (user.invite ? ' (ещё не установил пароль)' : '');
     $('#f-role2').value = user.role;
   }
   const prev = $('#emp-photo-preview');
@@ -444,56 +582,89 @@ function closeEmpModal() {
 
 $('#emp-cancel').addEventListener('click', closeEmpModal);
 
-// Создание доступа: конверт dataKey под новым кодом сотрудника.
-async function createAccessRecord(emp, role) {
-  const code = genCode();
+// Приглашение: одноразовый конверт dataKey под токеном из персональной ссылки.
+// Пароль сотрудник придумает сам при первом входе.
+async function createInvite(emp, role, existingUser) {
+  const token = genCode();
   const salt = cr.b64encode(cr.randomBytes(16));
-  const derived = await cr.deriveKeys(code, salt, state.usersDoc.kdf.iterations);
-  const rec = {
-    id: 'u-' + hex8(),
-    employeeId: emp.id,
-    email: emp.email,
-    displayName: `${emp.firstName} ${emp.lastName}`,
-    role,
+  const derived = await cr.deriveKeys(token, salt, state.usersDoc.kdf.iterations);
+  const invite = {
     salt,
     verifier: derived.verifier,
     encDataKey: await encryptObjForDoc(derived.encKey, state.session.dataKeyRaw),
-    invitedAt: new Date().toISOString().slice(0, 10),
+    createdAt: new Date().toISOString().slice(0, 10),
   };
-  return { rec, code };
+  let user = existingUser;
+  if (user) {
+    delete user.salt;
+    delete user.verifier;
+    delete user.encDataKey;
+    user.invite = invite;
+    if (role) user.role = role;
+    user.email = emp.loginEmail;
+    user.displayName = `${emp.firstName} ${emp.lastName}`;
+  } else {
+    user = {
+      id: 'u-' + hex8(),
+      employeeId: emp.id,
+      email: emp.loginEmail,
+      displayName: `${emp.firstName} ${emp.lastName}`,
+      role: role || 'user',
+      invite,
+      invitedAt: new Date().toISOString().slice(0, 10),
+    };
+    state.usersDoc.users.push(user);
+  }
+  return { user, link: `${BASE_URL}#invite=${user.id}.${token}` };
 }
 
-function inviteEmailText(emp, code) {
-  return [
+function inviteText(emp, link, role) {
+  const sigNames = emp.signatures
+    .map((s) => templateById(s.templateId)?.name).filter(Boolean);
+  const lines = [
     `Здравствуйте, ${emp.firstName}!`,
     '',
-    'Для вас создана корпоративная email-подпись EstateCRM.',
+    'Приглашаю вас в наш корпоративный сервис email-подписей.',
     '',
-    'Как установить:',
-    `1. Откройте сервис: ${BASE_URL}`,
-    `2. Войдите — email: ${emp.email}, код доступа: ${code}`,
-    '3. Проверьте свои данные и при необходимости загрузите фотографию.',
-    '4. Нажмите «Скопировать подпись» для вашей почтовой программы и следуйте короткой инструкции на экране.',
+    'Ваша персональная ссылка для входа:',
+    link,
     '',
-    'Код доступа личный — пожалуйста, не передавайте его коллегам.',
-  ].join('\n');
+    'Что сделать:',
+    '1. Откройте ссылку и придумайте себе пароль.',
+    '2. Проверьте свои данные и загрузите фотографию.',
+    '3. Скопируйте готовую подпись для своей почтовой программы — инструкция будет на экране.',
+  ];
+  if (sigNames.length) {
+    lines.push('', sigNames.length > 1
+      ? `Для вас уже подготовлены подписи: ${sigNames.join(', ')}.`
+      : `Для вас уже подготовлена подпись «${sigNames[0]}».`);
+  }
+  if (role === 'admin') {
+    lines.push('',
+      'Вам назначена роль администратора сервиса. Это значит, что вы можете:',
+      '— приглашать новых сотрудников и удалять уволившихся;',
+      '— видеть и редактировать подписи всех сотрудников;',
+      '— создавать и настраивать шаблоны подписей (логотип, соцсети, обязательные поля).');
+  }
+  lines.push('', 'Ссылка персональная и одноразовая — пожалуйста, не пересылайте её другим.');
+  return lines.join('\n');
 }
 
-function showInviteModal(emp, code) {
+function showInviteModal(emp, link, role) {
   $('#inv-name').textContent = `${emp.firstName} ${emp.lastName}`;
-  $('#inv-email').textContent = emp.email;
-  $('#inv-code').textContent = code;
-  const subject = 'Ваша корпоративная email-подпись EstateCRM';
-  const body = inviteEmailText(emp, code);
+  $('#inv-email').textContent = emp.loginEmail;
+  $('#inv-link').textContent = link;
+  const subject = 'Приглашение в сервис email-подписей';
+  const body = inviteText(emp, link, role);
   $('#inv-mailto').href =
-    `mailto:${encodeURIComponent(emp.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    `mailto:${encodeURIComponent(emp.loginEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   $('#inv-copy-text').onclick = async () => {
-    await copyPlainText(`${subject}\n\n${body}`);
-    toast('Текст приглашения скопирован.');
+    await copyPlainText(body);
+    toast('Текст приглашения со ссылкой скопирован — вставьте его в чат сотруднику.');
   };
-  $('#inv-copy-code').onclick = async () => {
-    await copyPlainText(code);
-    toast('Код доступа скопирован.');
+  $('#inv-copy-link').onclick = async () => {
+    await copyPlainText(link);
+    toast('Ссылка скопирована.');
   };
   $('#modal-invite').classList.remove('hidden');
 }
@@ -506,10 +677,23 @@ $('#emp-form').addEventListener('submit', async (e) => {
   const btn = $('#emp-save');
   busy(btn, true, 'Сохраняю…');
   try {
-    const email = $('#f-email').value.trim();
+    const loginEmail = $('#f-email').value.trim();
     const emailTaken = state.employees.some((x) => x.id !== state.editingId
-      && (x.email || '').toLowerCase() === email.toLowerCase());
-    if (emailTaken) throw new Error('Сотрудник с таким email уже есть.');
+      && (x.loginEmail || '').toLowerCase() === loginEmail.toLowerCase());
+    if (emailTaken) throw new Error('Сотрудник с таким email для входа уже есть.');
+
+    // Подписи из чекбоксов
+    const sigs = [];
+    $$('#f-signatures .sig-row').forEach((row) => {
+      const on = row.querySelector('.sig-on');
+      if (on.checked) {
+        sigs.push({
+          templateId: on.value,
+          email: row.querySelector('.sig-email').value.trim() || loginEmail,
+        });
+      }
+    });
+    if (!sigs.length) throw new Error('Отметьте хотя бы одну подпись.');
 
     let emp = state.employees.find((x) => x.id === state.editingId);
     const isNew = !emp;
@@ -522,8 +706,8 @@ $('#emp-form').addEventListener('submit', async (e) => {
     emp.position = $('#f-position').value.trim();
     emp.department = $('#f-department').value.trim();
     emp.mobile = $('#f-mobile').value.trim();
-    emp.email = email;
-    emp.templateId = $('#f-template').value;
+    emp.loginEmail = loginEmail;
+    emp.signatures = sigs;
     emp.socials = emp.socials || {};
     emp.socials.linkedin = $('#f-linkedin').value.trim();
 
@@ -543,21 +727,23 @@ $('#emp-form').addEventListener('submit', async (e) => {
 
     // Доступ и роль
     const user = userByEmployee(emp.id);
-    let inviteCode = null;
+    let inviteLink = null;
+    let inviteRole = null;
     let usersChanged = false;
     if (user) {
       const newRole = $('#f-role2').value;
-      if (user.role !== newRole || user.email !== emp.email
+      if (user.role !== newRole || user.email !== emp.loginEmail
           || user.displayName !== `${emp.firstName} ${emp.lastName}`) {
         user.role = newRole;
-        user.email = emp.email;
+        user.email = emp.loginEmail;
         user.displayName = `${emp.firstName} ${emp.lastName}`;
         usersChanged = true;
       }
     } else if ($('#f-invite').checked) {
-      const { rec, code } = await createAccessRecord(emp, $('#f-role').value);
-      state.usersDoc.users.push(rec);
-      inviteCode = code;
+      const role = $('#f-role').value;
+      const created = await createInvite(emp, role, null);
+      inviteLink = created.link;
+      inviteRole = role;
       usersChanged = true;
     }
 
@@ -567,8 +753,8 @@ $('#emp-form').addEventListener('submit', async (e) => {
     renderEmployees();
     fillDeptFilter();
     closeEmpModal();
-    if (inviteCode) {
-      showInviteModal(emp, inviteCode);
+    if (inviteLink) {
+      showInviteModal(emp, inviteLink, inviteRole);
     } else {
       toast(photoUploaded
         ? 'Сохранено. Фото станет доступно по публичной ссылке через ~1 минуту.'
@@ -586,19 +772,14 @@ $('#acc-reset').addEventListener('click', async () => {
   const emp = state.employees.find((x) => x.id === state.editingId);
   const user = emp && userByEmployee(emp.id);
   if (!user) return;
-  if (!confirm(`Сбросить код доступа для «${user.displayName}»? Старый код перестанет работать.`)) return;
+  if (!confirm(`Создать новую ссылку для входа для «${user.displayName}»? Текущий пароль перестанет действовать — сотрудник придумает новый по ссылке.`)) return;
   const btn = $('#acc-reset');
   busy(btn, true, 'Генерирую…');
   try {
-    const code = genCode();
-    const salt = cr.b64encode(cr.randomBytes(16));
-    const derived = await cr.deriveKeys(code, salt, state.usersDoc.kdf.iterations);
-    user.salt = salt;
-    user.verifier = derived.verifier;
-    user.encDataKey = await encryptObjForDoc(derived.encKey, state.session.dataKeyRaw);
-    await saveUsers(`Сброшен код доступа: ${user.displayName}`);
+    const { link } = await createInvite(emp, null, user);
+    await saveUsers(`Новая ссылка для входа: ${user.displayName}`);
     closeEmpModal();
-    showInviteModal(emp, code);
+    showInviteModal(emp, link, user.role);
   } catch (err) {
     toast(err.message, true, 6000);
   } finally {
@@ -711,10 +892,16 @@ $('#crop-apply').addEventListener('click', () => {
 // ---------- Вкладка «Шаблоны» (администратор) ----------
 const SAMPLE_EMPLOYEE = {
   firstName: 'Глеб', lastName: 'Цыганков', position: 'Управляющий партнер',
-  mobile: '+7 915 122-25-25', email: 'g.tsygankov@estatecrm.io',
-  department: 'Руководство',
-  photo: 'assets/photos/emp-a-balanov.jpg', photoVersion: 1, socials: {},
+  mobile: '+7 915 122-25-25', loginEmail: 'g.tsygankov@estatecrm.io',
+  department: 'Руководство', signatures: [],
+  photo: 'assets/photos/emp-70a88b91.jpg', photoVersion: 1, socials: {},
 };
+
+function tplPreviewEmployee(tpl) {
+  const sample = state.employees[0] || SAMPLE_EMPLOYEE;
+  const sig = (sample.signatures || []).find((s) => s.templateId === tpl.id);
+  return sigView(sample, sig);
+}
 
 function renderTemplatesTab() {
   const wrap = $('#tpl-list');
@@ -722,9 +909,9 @@ function renderTemplatesTab() {
   for (const tpl of state.templates) {
     const card = document.createElement('div');
     card.className = 'tpl-card';
-    const usedBy = state.employees.filter((e) => e.templateId === tpl.id).length;
-    const sample = state.employees[0] || SAMPLE_EMPLOYEE;
-    const sigHtml = renderSignature(tpl, sample, BASE_URL);
+    const usedBy = state.employees
+      .filter((e) => e.signatures.some((s) => s.templateId === tpl.id)).length;
+    const sigHtml = renderSignature(tpl, tplPreviewEmployee(tpl), BASE_URL);
     const reqLabels = (tpl.config.required || [])
       .map((r) => EMPLOYEE_FIELDS.find((f) => f.id === r)?.label).filter(Boolean);
     card.innerHTML = `
@@ -758,7 +945,6 @@ function renderTemplatesTab() {
         state.templates.push(copy);
         await saveTemplates(`Дублирован шаблон: ${tpl.name}`);
         renderTemplatesTab();
-        fillTemplateSelect();
         toast('Шаблон продублирован.');
       } catch (err) {
         toast(err.message, true, 6000);
@@ -840,7 +1026,9 @@ function openTplModal(id) {
   $('#t-text').value = cfg.colors?.text || '#212121';
   $('#t-btnEnabled').checked = !!cfg.button?.enabled;
   $('#t-btnUrl').value = cfg.button?.url || '';
-  const usedBy = tpl ? state.employees.filter((e) => e.templateId === tpl.id).length : 0;
+  const usedBy = tpl
+    ? state.employees.filter((e) => e.signatures.some((s) => s.templateId === tpl.id)).length
+    : 0;
   const delBtn = $('#tpl-delete');
   delBtn.classList.toggle('hidden', !tpl);
   delBtn.disabled = usedBy > 0 || state.templates.length < 2;
@@ -937,16 +1125,15 @@ $('#tpl-form').addEventListener('submit', async (e) => {
         v: prevV + 1,
       };
     } else if (cfg.logo && cfg.logo.src) {
-      // Логотип не менялся — обновляем высоту (ширина по прежним пропорциям) и ссылку
       const ratio = cfg.logo.width / cfg.logo.height;
       cfg.logo.height = logoHeight;
       cfg.logo.width = Math.round(ratio * logoHeight);
       cfg.logo.href = cfg.website.url || cfg.logo.href;
       cfg.logo.alt = tpl.name;
     }
+
     await saveTemplates(`${isNew ? 'Создан' : 'Обновлён'} шаблон: ${tpl.name}`);
     renderTemplatesTab();
-    fillTemplateSelect();
     renderEmployees();
     $('#modal-tpl').classList.add('hidden');
     toast(isNew ? 'Шаблон создан.' : 'Шаблон обновлён.');
@@ -967,7 +1154,6 @@ $('#tpl-delete').addEventListener('click', async () => {
     state.templates = state.templates.filter((t) => t.id !== tpl.id);
     await saveTemplates(`Удалён шаблон: ${tpl.name}`);
     renderTemplatesTab();
-    fillTemplateSelect();
     $('#modal-tpl').classList.add('hidden');
     toast('Шаблон удалён.');
   } catch (err) {
@@ -1017,38 +1203,59 @@ function setCardsDisabled(container, missing, warnEl) {
   }
 }
 
-function sigContext(emp) {
-  const tpl = templateById(emp.templateId);
-  const missing = missingRequired(tpl, emp);
+function buildSigSwitch(container, emp, activeIndex, onSwitch) {
+  container.innerHTML = '';
+  container.classList.toggle('hidden', emp.signatures.length < 2);
+  emp.signatures.forEach((sig, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'seg' + (i === activeIndex ? ' active' : '');
+    b.textContent = templateById(sig.templateId)?.name || `Подпись ${i + 1}`;
+    b.addEventListener('click', () => onSwitch(i));
+    container.appendChild(b);
+  });
+}
+
+// ---------- Просмотр подписей (администратор) ----------
+function currentSigContext() {
+  const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
+  const idx = Math.min(state.sigIndex, emp.signatures.length - 1);
+  const sig = emp.signatures[idx];
+  const tpl = templateById(sig.templateId);
+  const viewEmp = sigView(emp, sig);
   return {
-    emp, tpl, missing,
-    html: renderSignature(tpl, emp, BASE_URL),
-    plain: renderPlainText(tpl, emp),
+    emp, sig, tpl,
+    missing: missingRequired(tpl, viewEmp),
+    html: renderSignature(tpl, viewEmp, BASE_URL),
+    plain: renderPlainText(tpl, viewEmp),
   };
 }
 
-// ---------- Просмотр подписи (администратор) ----------
-function currentSigContext() {
-  const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
-  return sigContext(emp);
+function renderSigModal() {
+  const ctx = currentSigContext();
+  $('#sig-title').textContent = `Подписи: ${ctx.emp.firstName} ${ctx.emp.lastName}`;
+  $('#sig-preview').srcdoc =
+    `<!doctype html><meta charset="utf-8"><body style="margin:16px;background:#fff;">${ctx.html}</body>`;
+  buildSigSwitch($('#sig-switch'), ctx.emp, state.sigIndex, (i) => {
+    state.sigIndex = i;
+    renderSigModal();
+  });
+  setCardsDisabled($('#sig-clients'), ctx.missing, $('#sig-missing'));
+  $('#sig-copy-html').disabled = ctx.missing.length > 0;
 }
 
 function openSigModal(empId) {
   state.sigEmployeeId = empId;
-  const ctx = currentSigContext();
-  $('#sig-title').textContent = `Подпись: ${ctx.emp.firstName} ${ctx.emp.lastName}`;
-  $('#sig-preview').srcdoc =
-    `<!doctype html><meta charset="utf-8"><body style="margin:16px;background:#fff;">${ctx.html}</body>`;
-  $$('#modal-sig .seg').forEach((b) => b.classList.toggle('active', b.dataset.width === '600'));
+  state.sigIndex = 0;
+  $$('#modal-sig .seg[data-width]').forEach((b) => b.classList.toggle('active', b.dataset.width === '600'));
   $('#sig-preview').style.width = '600px';
   renderClientCards($('#sig-clients'), currentSigContext);
-  setCardsDisabled($('#sig-clients'), ctx.missing, $('#sig-missing'));
-  $('#sig-copy-html').disabled = ctx.missing.length > 0;
+  renderSigModal();
   $('#modal-sig').classList.remove('hidden');
 }
 
-$$('#modal-sig .seg').forEach((btn) => btn.addEventListener('click', () => {
-  $$('#modal-sig .seg').forEach((b) => b.classList.toggle('active', b === btn));
+$$('#modal-sig .seg[data-width]').forEach((btn) => btn.addEventListener('click', () => {
+  $$('#modal-sig .seg[data-width]').forEach((b) => b.classList.toggle('active', b === btn));
   $('#sig-preview').style.width = btn.dataset.width + 'px';
 }));
 
@@ -1075,20 +1282,23 @@ function myDraft() {
   draft.position = $('#mf-position').value.trim();
   draft.department = $('#mf-department').value.trim();
   draft.mobile = $('#mf-mobile').value.trim();
-  draft.email = $('#mf-email').value.trim();
   draft.socials.linkedin = $('#mf-linkedin').value.trim();
+  draft.signatures = state.mySigs;
   if (state.pendingPhoto) { draft.photo = state.pendingPhoto.dataUrl; }
   return draft;
 }
 
 function myContext() {
   const draft = myDraft();
-  const tpl = templateById(draft.templateId);
+  const idx = Math.min(state.mySigIndex, draft.signatures.length - 1);
+  const sig = draft.signatures[idx];
+  const tpl = templateById(sig.templateId);
+  const viewEmp = sigView(draft, sig);
   return {
-    emp: draft, tpl,
-    missing: missingRequired(tpl, draft),
-    html: renderSignature(tpl, draft, BASE_URL),
-    plain: renderPlainText(tpl, draft),
+    emp: viewEmp, sig, tpl,
+    missing: missingRequired(tpl, viewEmp),
+    html: renderSignature(tpl, viewEmp, BASE_URL),
+    plain: renderPlainText(tpl, viewEmp),
   };
 }
 
@@ -1100,25 +1310,38 @@ function fillMy() {
   }
   state.pendingPhoto = null;
   state.cropSourceUrl = null;
+  state.mySigs = emp.signatures.map((s) => ({ ...s }));
+  state.mySigIndex = 0;
   $('#mf-firstName').value = emp.firstName || '';
   $('#mf-lastName').value = emp.lastName || '';
   $('#mf-position').value = emp.position || '';
   $('#mf-department').value = emp.department || '';
   $('#mf-mobile').value = emp.mobile || '';
-  $('#mf-email').value = emp.email || '';
   $('#mf-linkedin').value = emp.socials?.linkedin || '';
   const src = photoSrc(emp);
   $('#my-photo-preview').innerHTML = src ? `<img src="${src}" alt="">` : '<span>Фото</span>';
   $('#my-photo-recrop').classList.add('hidden');
+  renderClientCards($('#my-clients'), myContext);
+  renderMySig();
+}
 
-  // Пометить обязательные поля шаблона звёздочкой
-  const req = templateById(emp.templateId).config.required || [];
+function renderMySig() {
+  const emp = myEmployee();
+  if (!emp) return;
+  buildSigSwitch($('#my-sig-switch'), { signatures: state.mySigs }, state.mySigIndex, (i) => {
+    state.mySigIndex = i;
+    renderMySig();
+  });
+  const sig = state.mySigs[state.mySigIndex];
+  $('#mf-sigEmail').value = sig.email || '';
+
+  // Пометить обязательные поля текущего шаблона
+  const req = templateById(sig.templateId).config.required || [];
   for (const f of EMPLOYEE_FIELDS) {
     if (f.id === 'photo') continue;
-    const label = $(`#l-mf-${f.id}`);
+    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
     if (label) label.classList.toggle('req', req.includes(f.id));
   }
-  renderClientCards($('#my-clients'), myContext);
   refreshMyPreview();
 }
 
@@ -1129,13 +1352,19 @@ function refreshMyPreview() {
   $('#my-preview').srcdoc =
     `<!doctype html><meta charset="utf-8"><body style="margin:16px;background:#fff;">${ctx.html}</body>`;
   setCardsDisabled($('#my-clients'), ctx.missing, $('#my-missing'));
-  // Подсветить незаполненные обязательные поля
   for (const f of EMPLOYEE_FIELDS) {
     if (f.id === 'photo') continue;
-    const label = $(`#l-mf-${f.id}`);
+    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
     if (label) label.classList.toggle('miss', ctx.missing.some((m) => m.id === f.id));
   }
 }
+
+$('#mf-sigEmail').addEventListener('input', () => {
+  const sig = state.mySigs[state.mySigIndex];
+  if (sig) sig.email = $('#mf-sigEmail').value.trim();
+  clearTimeout(myPreviewTimer);
+  myPreviewTimer = setTimeout(refreshMyPreview, 400);
+});
 
 $('#my-form').addEventListener('input', () => {
   clearTimeout(myPreviewTimer);
@@ -1163,9 +1392,9 @@ $('#my-form').addEventListener('submit', async (e) => {
     emp.position = $('#mf-position').value.trim();
     emp.department = $('#mf-department').value.trim();
     emp.mobile = $('#mf-mobile').value.trim();
-    emp.email = $('#mf-email').value.trim();
     emp.socials = emp.socials || {};
     emp.socials.linkedin = $('#mf-linkedin').value.trim();
+    emp.signatures = state.mySigs.map((s) => ({ ...s, email: (s.email || '').trim() || emp.loginEmail }));
 
     let photoUploaded = false;
     if (state.pendingPhoto) {
@@ -1182,9 +1411,8 @@ $('#my-form').addEventListener('submit', async (e) => {
     }
     await saveEmployees(`Сотрудник обновил данные: ${emp.firstName} ${emp.lastName}`);
 
-    // Синхронизация записи пользователя (email/имя для входа)
-    if (state.me.email !== emp.email || state.me.displayName !== `${emp.firstName} ${emp.lastName}`) {
-      state.me.email = emp.email;
+    // Синхронизация имени в записи пользователя
+    if (state.me.displayName !== `${emp.firstName} ${emp.lastName}`) {
       state.me.displayName = `${emp.firstName} ${emp.lastName}`;
       await saveUsers(`Обновлены данные входа: ${state.me.displayName}`);
     }
