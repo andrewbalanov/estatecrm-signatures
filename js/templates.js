@@ -147,6 +147,20 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
     `<a href="${escapeHtml(s.url)}" target="_blank" rel="nofollow noreferrer" style="text-decoration:none;"><img src="${absUrl(s.icon, baseUrl)}" width="25" height="25" alt="${s.label}" style="width:25px;height:25px;border:0;display:inline-block;"></a>`
   ).join('&nbsp;');
 
+  // Должность и компания: соединяем запятой, только если есть обе части
+  const titleLine = [employee.position, cfg.companyName]
+    .filter(Boolean).map(escapeHtml).join(', ');
+
+  // Блок контактов: пустые строки не рендерим; без контактов — нет и линий
+  const contactsRows = [];
+  if (contactsLine1) contactsRows.push(`<tr><td style="padding:0;">${contactsLine1}</td></tr>`);
+  if (contactsLine2) contactsRows.push(`<tr><td style="padding:${contactsLine1 ? '4px' : '0'} 0 0 0;">${contactsLine2}</td></tr>`);
+  const contactsBlock = contactsRows.length
+    ? `<tr><td colspan="2" style="border-top:2px solid ${accent};border-bottom:2px solid ${accent};padding:10px 0;">
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${contactsRows.join('\n')}</table>
+</td></tr>`
+    : '';
+
   // Пустая строка-отступ в самом начале подписи (до «С уважением, …»)
   const topSpacer = `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">&nbsp;</td></tr>`;
 
@@ -176,14 +190,9 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
 ${topSpacer}${greeting}${logo}<tr><td><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${fam};color:${textColor};">
 <tr>${photoCell}<td valign="top" style="vertical-align:top;${photo ? 'padding:0 0 0 12px;' : ''}">
 <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-<tr><td style="font-family:${fam};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${fam};color:${accent};font-size:${px(18)}px;white-space:nowrap;">${escapeHtml(fullName)}</span><br><span style="font-weight:bold;font-family:${fam};color:${textColor};font-size:${px(14)}px;">${escapeHtml(employee.position || '')}${cfg.companyName ? ', ' + escapeHtml(cfg.companyName) : ''}</span></p></td>
+<tr><td style="font-family:${fam};line-height:1.1;padding:0 0 12px 0;"><p style="margin:0;line-height:1.12;"><span style="font-weight:bold;font-family:${fam};color:${accent};font-size:${px(18)}px;white-space:nowrap;">${escapeHtml(fullName)}</span>${titleLine ? `<br><span style="font-weight:bold;font-family:${fam};color:${textColor};font-size:${px(14)}px;">${titleLine}</span>` : ''}</p></td>
 ${socialsCell}</tr>
-<tr><td colspan="2" style="border-top:2px solid ${accent};border-bottom:2px solid ${accent};padding:10px 0;">
-<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-<tr><td style="padding:0;">${contactsLine1}</td></tr>
-${contactsLine2 ? `<tr><td style="padding:4px 0 0 0;">${contactsLine2}</td></tr>` : ''}
-</table>
-</td></tr>
+${contactsBlock}
 </table>
 </td></tr>
 </table></td></tr>
