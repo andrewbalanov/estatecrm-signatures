@@ -34,14 +34,14 @@
         "socials": [
           {
             "network": "linkedin",
-            "enabled": true,
-            "url": "https://t.me/estatecrm",
+            "enabled": false,
+            "url": "",
             "perEmployee": false
           },
           {
             "network": "telegram",
-            "enabled": false,
-            "url": "",
+            "enabled": true,
+            "url": "https://t.me/estatecrm",
             "perEmployee": false
           },
           {
