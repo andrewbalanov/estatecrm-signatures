@@ -232,6 +232,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-28ecddbc",
+      "employeeId": "emp-9242c577",
+      "email": "o.rastorgueva@trace-it.ru",
+      "displayName": "Ольга Расторгуева",
+      "role": "user",
+      "invite": {
+        "salt": "m4viijH0RQhh/bmVJ/xbZw==",
+        "verifier": "Xu+3L2+UPVpAxXxiQjX09YO6r2jhgX0cTxhM4SB4nl4=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "TZLGDpdBVUiWChap",
+          "ct": "b7sOryxXjJRKxzqTLBeEwTgB3vBAlKueTqfv+18ZufoY2M39ymMQESuWHpfEk1YM+G4kkotp2pOwhlJb"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
