@@ -296,18 +296,15 @@
       "email": "m.ryabkov@trace-it.ru",
       "displayName": "Максим Рябков",
       "role": "user",
-      "invite": {
-        "salt": "ixNSFV+p9oelQay36r+8uw==",
-        "verifier": "CSd0XXH9HF6j63XqpjuA7LQRGv4KpDwI1voUxRDSCN4=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "24v5IF7fkoFvC1UL",
-          "ct": "UY3+tEidoVAX8i9L5nfqFIB2mBD3MRnO3BgfxThFjlcTxl/MW7is4f3t80G5NtHo4wrD+c33nIfXnvfY"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "eh2AdHyxWh+Bl+lCtNuCwA==",
+      "verifier": "uGdxOeF/NK3mqE1KR49sXJ19T9BkaRYhLYQNMOzKZfk=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "PrqDwRGys+JccyQs",
+        "ct": "gztHmyFaz6kjRsU2RWIwLbzQ2eC+qA1M4vxE3sgfL4WAU5XAfie5nNhs66b/Bs0HUS+o6yh931eOhj4s"
+      }
     },
     {
       "id": "u-1a5e1bd0",
