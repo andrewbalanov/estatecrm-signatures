@@ -57,6 +57,25 @@
         "createdAt": "2026-07-20"
       },
       "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-9157e215",
+      "employeeId": "emp-e9749a24",
+      "email": "g.tsygankov@trace-it.ru",
+      "displayName": "Глеб Цыганков",
+      "role": "admin",
+      "invite": {
+        "salt": "8ar/YZj2mfDAUdTphhctug==",
+        "verifier": "e4NZz7Q5an8ZVrkjNwGyRoIfat340dVi3f/466q4Zig=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "zeiwQyjRANZw4B7Y",
+          "ct": "XghhHX1K9EKoiJesPbaXwNz74TI3cR4/yn2lXJk/S2TIiDyMaFbh45VJPtdjTgUs7JGO7DQTq0ptWXkz"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
