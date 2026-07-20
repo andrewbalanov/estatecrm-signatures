@@ -131,14 +131,30 @@
       "email": "y.test@estatecrm.io",
       "displayName": "Борис Игрекова",
       "role": "user",
+      "invitedAt": "2026-07-20",
+      "salt": "NAd9xInS1iMCNnp5J5aODg==",
+      "verifier": "/MXRf75SHC2Z1ANGOPlOOqmKkaAxQFArvhybCnReq3g=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "XKyyYjQ/GTihcF/F",
+        "ct": "14dJJTPv/DyQSZblBigimDPLxZT01W6HxI90FP7+2qYJkaZIXHeiSZ3cA/uZx6aedV2TWQ3rccFB6fvc"
+      }
+    },
+    {
+      "id": "u-test-z",
+      "employeeId": "emp-test-z",
+      "email": "z.test@estatecrm.io",
+      "displayName": "Захар Зетов",
+      "role": "user",
       "invite": {
-        "salt": "wNXh3wSKKCdfyPggnUiwUg==",
-        "verifier": "0hedzPCzR9m/Fo4eKmHvrTkYUyyPWvpE6Vr6ixabtlI=",
+        "salt": "wk91IiRlu8Lpcu4IR52GVA==",
+        "verifier": "YxrcoRpRIQHgzWZD+OwP/v3P14rK0+WAq23lLPBp15I=",
         "encDataKey": {
           "v": 1,
           "alg": "AES-256-GCM",
-          "iv": "E7D2vVotJ9R7SJWw",
-          "ct": "/uUupxP75WpRn17BEf3eIOy0f3tzGMDXyw6ihgjVDSSiMLjS9NePw9tPewkGSF32kOUllc2jcLeCykgf"
+          "iv": "enGDZeZ3HfDuOVC6",
+          "ct": "fZ4tOibvnMgP/4Ywul2jcI14jV277VMM2Hw43Pi6NCt63KUqkpgZTQNy4GjfPqF5e9YK7T1lH/H+1G/f"
         },
         "createdAt": "2026-07-20"
       },
