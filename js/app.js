@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=15';
-import * as cr from './crypto.js?v=15';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=15';
+import { BASE_URL } from './config.js?v=16';
+import * as cr from './crypto.js?v=16';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=16';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=15';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=15';
+} from './templates.js?v=16';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=16';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -469,6 +469,37 @@ function sigView(emp, sig) {
   return { ...emp, email: (sig && sig.email) || emp.loginEmail };
 }
 
+// ---------- Английская версия подписи ----------
+// Переводимые поля: имя, фамилия, должность. Остальное (email, телефон, фото) общее.
+const EN_FIELDS = ['firstName', 'lastName', 'position'];
+
+function langView(emp, lang) {
+  if (lang !== 'en' || !emp.en || !emp.en.enabled) return emp;
+  return {
+    ...emp,
+    firstName: (emp.en.firstName || '').trim(),
+    lastName: (emp.en.lastName || '').trim(),
+    position: (emp.en.position || '').trim(),
+  };
+}
+
+function tplForLang(tpl, lang) {
+  if (lang !== 'en') return tpl;
+  return {
+    ...tpl,
+    config: {
+      ...tpl.config,
+      greeting: tpl.config.greeting ? (tpl.config.greetingEn || 'Best regards,') : '',
+    },
+  };
+}
+
+// В английской версии незаполненные переводимые поля помечаем «(англ.)»
+function annotateEnMissing(missing, lang) {
+  if (lang !== 'en') return missing;
+  return missing.map((f) => EN_FIELDS.includes(f.id) ? { ...f, label: f.label + ' (англ.)' } : f);
+}
+
 function anySigNotReady(emp) {
   return emp.signatures.some((s) => missingRequired(templateById(s.templateId), sigView(emp, s)).length > 0);
 }
@@ -569,6 +600,12 @@ function openEmpModal(id) {
   $('#f-mobile').value = emp?.mobile || '';
   $('#f-email').value = emp?.loginEmail || '';
   $('#f-linkedin').value = emp?.socials?.linkedin || '';
+  const enData = emp?.en && emp.en.enabled ? emp.en : null;
+  $('#f-enEnabled').checked = !!enData;
+  $('#f-en-box').classList.toggle('hidden', !enData);
+  $('#f-enFirstName').value = enData?.firstName || '';
+  $('#f-enLastName').value = enData?.lastName || '';
+  $('#f-enPosition').value = enData?.position || '';
   renderSigRows(emp);
   $('#emp-delete').classList.toggle('hidden', !emp);
   $('#emp-photo-recrop').classList.add('hidden');
@@ -591,6 +628,10 @@ function closeEmpModal() {
 }
 
 $('#emp-cancel').addEventListener('click', closeEmpModal);
+
+$('#f-enEnabled').addEventListener('change', (e) => {
+  $('#f-en-box').classList.toggle('hidden', !e.target.checked);
+});
 
 // Приглашение: одноразовый конверт dataKey под токеном из персональной ссылки.
 // Пароль сотрудник придумает сам при первом входе.
@@ -720,6 +761,16 @@ $('#emp-form').addEventListener('submit', async (e) => {
     emp.signatures = sigs;
     emp.socials = emp.socials || {};
     emp.socials.linkedin = $('#f-linkedin').value.trim();
+    if ($('#f-enEnabled').checked) {
+      emp.en = {
+        enabled: true,
+        firstName: $('#f-enFirstName').value.trim(),
+        lastName: $('#f-enLastName').value.trim(),
+        position: $('#f-enPosition').value.trim(),
+      };
+    } else {
+      delete emp.en;
+    }
 
     let photoUploaded = false;
     if (state.pendingPhoto) {
@@ -1028,6 +1079,7 @@ function openTplModal(id) {
   $('#t-logo-height').value = cfg.logo?.height || 32;
   $('#t-name').value = tpl ? tpl.name : '';
   $('#t-greeting').value = cfg.greeting || '';
+  $('#t-greetingEn').value = cfg.greetingEn || 'Best regards,';
   $('#t-companyName').value = cfg.companyName || '';
   $('#t-companyPhone').value = cfg.companyPhone || '';
   $('#t-webLabel').value = cfg.website?.label || '';
@@ -1065,6 +1117,7 @@ function tplFormTemplate() {
   const existing = state.templates.find((t) => t.id === state.editingTplId);
   const cfg = JSON.parse(JSON.stringify(existing ? existing.config : defaultTemplateConfig()));
   cfg.greeting = $('#t-greeting').value.trim();
+  cfg.greetingEn = $('#t-greetingEn').value.trim();
   cfg.companyName = $('#t-companyName').value.trim();
   cfg.companyPhone = $('#t-companyPhone').value.trim();
   cfg.website = { label: $('#t-webLabel').value.trim(), url: $('#t-webUrl').value.trim() };
@@ -1166,6 +1219,7 @@ $('#tpl-form').addEventListener('submit', async (e) => {
     tpl.name = $('#t-name').value.trim();
     const cfg = tpl.config;
     cfg.greeting = $('#t-greeting').value.trim();
+    cfg.greetingEn = $('#t-greetingEn').value.trim();
     cfg.companyName = $('#t-companyName').value.trim();
     cfg.companyPhone = $('#t-companyPhone').value.trim();
     cfg.website = { label: $('#t-webLabel').value.trim(), url: $('#t-webUrl').value.trim() };
@@ -1265,6 +1319,11 @@ function createInstaller(root, cfg) {
     <div class="row gap" style="margin-bottom:6px;">
       <button type="button" class="inst-back secondary small hidden">← Все подписи</button>
       <div class="inst-title"></div>
+      <span class="flex-spacer"></span>
+      <div class="segmented inst-lang hidden">
+        <button type="button" class="seg" data-lang="ru">Русская</button>
+        <button type="button" class="seg" data-lang="en">English</button>
+      </div>
     </div>
     <div class="inst-missing warn-box hidden"></div>
     <div class="inst-step">1. Куда устанавливаете подпись?</div>
@@ -1292,7 +1351,7 @@ function createInstaller(root, cfg) {
     <details class="inst-howto instructions" style="margin-top:12px;"><summary></summary><ol></ol></details>
   </div>`;
   const el = (s) => root.querySelector(s);
-  const st = { sigIndex: null, clientId: 'outlook-win', fontId: 'aptos', size: 15, custom: false, mode: 'desktop' };
+  const st = { sigIndex: null, clientId: 'outlook-win', fontId: 'aptos', size: 15, custom: false, mode: 'desktop', lang: 'ru' };
 
   el('.inst-font').innerHTML = FONT_CHOICES
     .map((f) => `<option value="${f.id}">${f.label}</option>`).join('');
@@ -1337,6 +1396,7 @@ function createInstaller(root, cfg) {
   }
   function select(i) {
     st.sigIndex = i;
+    st.lang = 'ru';
     applyClientDefaults();
     el('.inst-picker').classList.add('hidden');
     el('.inst-panel').classList.remove('hidden');
@@ -1346,7 +1406,12 @@ function createInstaller(root, cfg) {
   }
   function render() {
     if (st.sigIndex === null) return;
-    const ctx = cfg.context(st.sigIndex, fontOpts());
+    const hasEn = !!(cfg.hasEn && cfg.hasEn());
+    if (!hasEn) st.lang = 'ru';
+    el('.inst-lang').classList.toggle('hidden', !hasEn);
+    el('.inst-lang').querySelectorAll('.seg')
+      .forEach((b) => b.classList.toggle('active', b.dataset.lang === st.lang));
+    const ctx = cfg.context(st.sigIndex, fontOpts(), st.lang);
     const client = MAIL_CLIENTS.find((c) => c.id === st.clientId);
     el('.inst-title').textContent = `Подпись «${ctx.tpl.name}» · ${ctx.emp.email || ''}`;
     clientsWrap.querySelectorAll('.inst-client')
@@ -1360,7 +1425,7 @@ function createInstaller(root, cfg) {
     el('.inst-mode').querySelectorAll('.seg')
       .forEach((b) => b.classList.toggle('active', b.dataset.mode === st.mode));
     setPreview(el('.inst-preview'), ctx.html, st.mode,
-      `${ctx.emp.firstName} ${ctx.emp.lastName}`, fontOpts());
+      `${ctx.emp.firstName} ${ctx.emp.lastName}`, fontOpts(), st.lang);
     const dis = ctx.missing.length > 0;
     const warn = el('.inst-missing');
     warn.classList.toggle('hidden', !dis);
@@ -1387,22 +1452,24 @@ function createInstaller(root, cfg) {
   el('.inst-reset').addEventListener('click', () => { applyClientDefaults(); render(); });
   el('.inst-mode').querySelectorAll('.seg').forEach((b) =>
     b.addEventListener('click', () => { st.mode = b.dataset.mode; render(); }));
+  el('.inst-lang').querySelectorAll('.seg').forEach((b) =>
+    b.addEventListener('click', () => { st.lang = b.dataset.lang; render(); }));
   el('.inst-copy').addEventListener('click', async () => {
-    const ctx = cfg.context(st.sigIndex, fontOpts());
+    const ctx = cfg.context(st.sigIndex, fontOpts(), st.lang);
     if (ctx.missing.length) return;
     const client = MAIL_CLIENTS.find((c) => c.id === st.clientId);
     const ok = await copyRichHtml(ctx.html, ctx.plain);
     toast(ok ? `Подпись скопирована — вставьте в ${client.name}.` : 'Не удалось скопировать.', !ok);
   });
   el('.inst-htm').addEventListener('click', () => {
-    const ctx = cfg.context(st.sigIndex, fontOpts());
+    const ctx = cfg.context(st.sigIndex, fontOpts(), st.lang);
     if (ctx.missing.length) return;
     downloadFile(`signature-${ctx.emp.id}.htm`,
       fullHtmlDocument(ctx.html, `${ctx.emp.firstName} ${ctx.emp.lastName}`), 'text/html;charset=utf-8');
     toast('Файл .htm скачан.');
   });
   el('.inst-html').addEventListener('click', async () => {
-    const ctx = cfg.context(st.sigIndex, fontOpts());
+    const ctx = cfg.context(st.sigIndex, fontOpts(), st.lang);
     await copyPlainText(ctx.html);
     toast('HTML-код подписи скопирован как текст.');
   });
@@ -1422,6 +1489,7 @@ function createInstaller(root, cfg) {
     },
     refresh: render,
     get sigIndex() { return st.sigIndex; },
+    get lang() { return st.lang; },
   };
 }
 
@@ -1434,13 +1502,21 @@ const PREVIEW_MAIL_TEXT = `<p style="margin:0 0 12px;">Добрый день!</p
 // mode 'desktop' — окно почтовой программы; 'mobile' — iPhone 17 Pro Max
 // (экран 440pt, поля Почты ~15px — переносы в подписи такие же, как на телефоне).
 // fontOpts задаёт шрифт всего письма (текст + подпись рендерятся согласованно).
-function previewDoc(sigHtml, mode, senderName, fontOpts) {
+// lang переключает текст примера письма (для английской версии подписи).
+function previewDoc(sigHtml, mode, senderName, fontOpts, lang) {
   const fam = fontOpts?.fontFamily || 'Arial,Helvetica,sans-serif';
   const fs = fontOpts?.fontSize || 14;
   const name = escapeHtml(senderName || 'Сотрудник');
   const initials = escapeHtml((senderName || 'С')
     .split(/\s+/).map((w) => w[0] || '').join('').slice(0, 2).toUpperCase());
-  const body = PREVIEW_MAIL_TEXT + sigHtml;
+  const T = lang === 'en'
+    ? {
+      subject: 'Project materials',
+      body: `<p style="margin:0 0 12px;">Hello!</p>
+<p style="margin:0 0 16px;">Please find the project materials attached — have a look before Thursday&#39;s meeting.</p>`,
+    }
+    : { subject: 'Материалы по проекту', body: PREVIEW_MAIL_TEXT };
+  const body = T.body + sigHtml;
   if (mode === 'mobile') {
     return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#e9edf3;padding:14px 0;display:flex;justify-content:center;font-family:${CHROME_FONT};">
 <div style="width:440px;background:#0b0b0f;border-radius:58px;padding:10px;box-shadow:0 18px 50px rgba(15,25,50,.35);flex-shrink:0;">
@@ -1460,7 +1536,7 @@ function previewDoc(sigHtml, mode, senderName, fontOpts) {
 <div><div style="font-weight:600;font-size:15px;color:#111;">${name}</div>
 <div style="font-size:13px;color:#6b7280;">Кому: Вам</div></div>
 </div>
-<div style="font-weight:700;font-size:17px;margin-top:10px;color:#111;">Материалы по проекту</div>
+<div style="font-weight:700;font-size:17px;margin-top:10px;color:#111;">${T.subject}</div>
 </div>
 <div style="padding:16px 15px 10px;font-family:${fam};font-size:${fs}px;line-height:1.5;color:#212121;">${body}</div>
 <div style="height:28px;position:relative;"><div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:148px;height:5px;background:#111;border-radius:3px;"></div></div>
@@ -1472,19 +1548,19 @@ function previewDoc(sigHtml, mode, senderName, fontOpts) {
 <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ff5f57;"></span>
 <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#febc2e;"></span>
 <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#28c840;"></span>
-<span style="flex:1;text-align:center;color:#6b7280;font-size:13px;font-weight:600;">Материалы по проекту</span>
+<span style="flex:1;text-align:center;color:#6b7280;font-size:13px;font-weight:600;">${T.subject}</span>
 <span style="width:54px;"></span>
 </div>
 <div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Кому:&nbsp;<span style="background:#eef3ff;color:#1D325C;border-radius:10px;padding:2px 10px;font-weight:600;">Иван Партнёров</span></div>
-<div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Тема:&nbsp;<span style="color:#111;font-weight:600;">Материалы по проекту</span></div>
+<div style="padding:9px 18px;border-bottom:1px solid #eef1f5;font-size:13px;color:#6b7280;">Тема:&nbsp;<span style="color:#111;font-weight:600;">${T.subject}</span></div>
 <div style="padding:18px;font-family:${fam};font-size:${fs}px;line-height:1.5;color:#212121;">${body}</div>
 </div></body></html>`;
 }
 
-function setPreview(iframe, sigHtml, mode, senderName, fontOpts) {
+function setPreview(iframe, sigHtml, mode, senderName, fontOpts, lang) {
   iframe.style.width = (mode === 'mobile' ? 492 : 664) + 'px';
   iframe.style.height = (mode === 'mobile' ? 840 : 620) + 'px';
-  iframe.srcdoc = previewDoc(sigHtml, mode, senderName, fontOpts);
+  iframe.srcdoc = previewDoc(sigHtml, mode, senderName, fontOpts, lang);
   iframe.onload = () => {
     try {
       const h = iframe.contentDocument.body.scrollHeight + 6;
@@ -1494,14 +1570,14 @@ function setPreview(iframe, sigHtml, mode, senderName, fontOpts) {
 }
 
 // ---------- Просмотр подписей (администратор) ----------
-function adminSigContext(i, fontOpts) {
-  const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
-  const sig = emp.signatures[Math.min(i, emp.signatures.length - 1)];
-  const tpl = templateById(sig.templateId);
-  const viewEmp = sigView(emp, sig);
+function adminSigContext(i, fontOpts, lang = 'ru') {
+  const empRaw = state.employees.find((e) => e.id === state.sigEmployeeId);
+  const sig = empRaw.signatures[Math.min(i, empRaw.signatures.length - 1)];
+  const tpl = tplForLang(templateById(sig.templateId), lang);
+  const viewEmp = sigView(langView(empRaw, lang), sig);
   return {
     emp: viewEmp, sig, tpl,
-    missing: missingRequired(tpl, viewEmp),
+    missing: annotateEnMissing(missingRequired(tpl, viewEmp), lang),
     html: renderSignature(tpl, viewEmp, BASE_URL, fontOpts),
     plain: renderPlainText(tpl, viewEmp),
   };
@@ -1513,6 +1589,10 @@ const sigInstaller = createInstaller($('#sig-installer'), {
     return emp ? emp.signatures : [];
   },
   context: adminSigContext,
+  hasEn: () => {
+    const emp = state.employees.find((e) => e.id === state.sigEmployeeId);
+    return !!(emp && emp.en && emp.en.enabled);
+  },
 });
 
 function openSigModal(empId) {
@@ -1542,18 +1622,26 @@ function myDraft() {
   draft.mobile = $('#mf-mobile').value.trim();
   draft.socials.linkedin = $('#mf-linkedin').value.trim();
   draft.signatures = state.mySigs;
+  draft.en = !$('#my-en-box').classList.contains('hidden')
+    ? {
+      enabled: true,
+      firstName: $('#mf-enFirstName').value.trim(),
+      lastName: $('#mf-enLastName').value.trim(),
+      position: $('#mf-enPosition').value.trim(),
+    }
+    : null;
   if (state.pendingPhoto) { draft.photo = state.pendingPhoto.dataUrl; }
   return draft;
 }
 
-function myInstallContext(i, fontOpts) {
+function myInstallContext(i, fontOpts, lang = 'ru') {
   const draft = myDraft();
   const sig = draft.signatures[Math.min(i, draft.signatures.length - 1)];
-  const tpl = templateById(sig.templateId);
-  const viewEmp = sigView(draft, sig);
+  const tpl = tplForLang(templateById(sig.templateId), lang);
+  const viewEmp = sigView(langView(draft, lang), sig);
   return {
     emp: viewEmp, sig, tpl,
-    missing: missingRequired(tpl, viewEmp),
+    missing: annotateEnMissing(missingRequired(tpl, viewEmp), lang),
     html: renderSignature(tpl, viewEmp, BASE_URL, fontOpts),
     plain: renderPlainText(tpl, viewEmp),
   };
@@ -1562,6 +1650,10 @@ function myInstallContext(i, fontOpts) {
 const myInstaller = createInstaller($('#my-installer'), {
   getSignatures: () => state.mySigs,
   context: myInstallContext,
+  hasEn: () => {
+    const d = myDraft();
+    return !!(d && d.en && d.en.enabled);
+  },
   onSelect: (i) => {
     state.mySigIndex = i;
     const sig = state.mySigs[i];
@@ -1576,17 +1668,27 @@ const myInstaller = createInstaller($('#my-installer'), {
 function updateMyReqMarks() {
   const i = myInstaller.sigIndex;
   if (i === null) return;
+  const lang = myInstaller.lang;
   const draft = myDraft();
   const sig = draft.signatures[Math.min(i, draft.signatures.length - 1)];
-  const tpl = templateById(sig.templateId);
+  const tpl = tplForLang(templateById(sig.templateId), lang);
   const req = tpl.config.required || [];
-  const missing = missingRequired(tpl, sigView(draft, sig));
+  const missing = missingRequired(tpl, sigView(langView(draft, lang), sig));
   for (const f of EMPLOYEE_FIELDS) {
     if (f.id === 'photo') continue;
-    const label = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
-    if (!label) continue;
-    label.classList.toggle('req', req.includes(f.id));
-    label.classList.toggle('miss', missing.some((m) => m.id === f.id));
+    const isMissing = missing.some((m) => m.id === f.id);
+    const ru = $(f.id === 'email' ? '#l-mf-sigEmail' : `#l-mf-${f.id}`);
+    if (ru) {
+      ru.classList.toggle('req', req.includes(f.id));
+      ru.classList.toggle('miss', isMissing && !(lang === 'en' && EN_FIELDS.includes(f.id)));
+    }
+    if (EN_FIELDS.includes(f.id)) {
+      const enLabel = $(`#l-mf-en${f.id[0].toUpperCase()}${f.id.slice(1)}`);
+      if (enLabel) {
+        enLabel.classList.toggle('req', req.includes(f.id));
+        enLabel.classList.toggle('miss', lang === 'en' && isMissing);
+      }
+    }
   }
 }
 
@@ -1606,6 +1708,12 @@ function fillMy() {
   $('#mf-department').value = emp.department || '';
   $('#mf-mobile').value = emp.mobile || '';
   $('#mf-linkedin').value = emp.socials?.linkedin || '';
+  const en = emp.en && emp.en.enabled ? emp.en : null;
+  $('#my-en-box').classList.toggle('hidden', !en);
+  $('#my-en-toggle').classList.toggle('hidden', !!en);
+  $('#mf-enFirstName').value = en?.firstName || '';
+  $('#mf-enLastName').value = en?.lastName || '';
+  $('#mf-enPosition').value = en?.position || '';
   const src = photoSrc(emp);
   $('#my-photo-preview').innerHTML = src ? `<img src="${src}" alt="">` : '<span>Фото</span>';
   $('#my-photo-recrop').classList.add('hidden');
@@ -1632,6 +1740,23 @@ $('#my-form').addEventListener('input', () => {
   myPreviewTimer = setTimeout(refreshMyPreview, 400);
 });
 
+$('#my-en-toggle').addEventListener('click', () => {
+  $('#my-en-box').classList.remove('hidden');
+  $('#my-en-toggle').classList.add('hidden');
+  $('#mf-enFirstName').focus();
+  refreshMyPreview();
+});
+
+$('#my-en-remove').addEventListener('click', () => {
+  if (!confirm('Удалить английскую версию подписи?')) return;
+  $('#mf-enFirstName').value = '';
+  $('#mf-enLastName').value = '';
+  $('#mf-enPosition').value = '';
+  $('#my-en-box').classList.add('hidden');
+  $('#my-en-toggle').classList.remove('hidden');
+  refreshMyPreview();
+});
+
 $('#my-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!state.store.canWrite) {
@@ -1650,6 +1775,16 @@ $('#my-form').addEventListener('submit', async (e) => {
     emp.mobile = $('#mf-mobile').value.trim();
     emp.socials = emp.socials || {};
     emp.socials.linkedin = $('#mf-linkedin').value.trim();
+    if (!$('#my-en-box').classList.contains('hidden')) {
+      emp.en = {
+        enabled: true,
+        firstName: $('#mf-enFirstName').value.trim(),
+        lastName: $('#mf-enLastName').value.trim(),
+        position: $('#mf-enPosition').value.trim(),
+      };
+    } else {
+      delete emp.en;
+    }
     emp.signatures = state.mySigs.map((s) => ({ ...s, email: (s.email || '').trim() || emp.loginEmail }));
 
     let photoUploaded = false;

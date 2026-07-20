@@ -7,7 +7,7 @@
 <title>EstateCRM — Подписи</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D325C'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/cropper.min.css">
-<link rel="stylesheet" href="css/app.css?v=15">
+<link rel="stylesheet" href="css/app.css?v=16">
 </head>
 <body>
 
@@ -156,6 +156,20 @@
             <label id="l-mf-mobile">Мобильный телефон<input type="tel" id="mf-mobile" placeholder="+7 9xx xxx-xx-xx"></label>
             <label>Личный LinkedIn (необязательно)<input type="url" id="mf-linkedin" placeholder="https://linkedin.com/in/…"></label>
           </div>
+          <div class="row" style="margin-top:14px;">
+            <button type="button" id="my-en-toggle" class="secondary">+ Создать английскую версию</button>
+          </div>
+          <fieldset class="access-box hidden" id="my-en-box">
+            <legend>Английская версия</legend>
+            <p class="muted small-text" style="margin:0 0 10px;">Заполните данные латиницей —
+              в меню установки появится выбор языка подписи.</p>
+            <div class="grid2">
+              <label id="l-mf-enFirstName">First name<input type="text" id="mf-enFirstName" placeholder="Andrey"></label>
+              <label id="l-mf-enLastName">Last name<input type="text" id="mf-enLastName" placeholder="Balanov"></label>
+              <label id="l-mf-enPosition">Position<input type="text" id="mf-enPosition" placeholder="Managing Partner"></label>
+            </div>
+            <button type="button" id="my-en-remove" class="danger small" style="margin-top:10px;">Удалить английскую версию</button>
+          </fieldset>
           <div class="row end">
             <button type="submit" class="primary" id="my-save">Сохранить</button>
           </div>
@@ -195,6 +209,17 @@
         <label>Email для входа *<input type="email" id="f-email" required placeholder="i.familiya@estatecrm.io"></label>
         <label>Личный LinkedIn (необязательно)<input type="url" id="f-linkedin" placeholder="https://linkedin.com/in/…"></label>
       </div>
+
+      <fieldset class="access-box">
+        <legend>Английская версия</legend>
+        <label class="cb"><input type="checkbox" id="f-enEnabled">
+          Есть английская версия (появится выбор языка при установке)</label>
+        <div id="f-en-box" class="grid2 hidden">
+          <label>First name<input type="text" id="f-enFirstName" placeholder="Andrey"></label>
+          <label>Last name<input type="text" id="f-enLastName" placeholder="Balanov"></label>
+          <label>Position<input type="text" id="f-enPosition" placeholder="Managing Partner"></label>
+        </div>
+      </fieldset>
 
       <fieldset class="access-box">
         <legend>Подписи сотрудника</legend>
@@ -293,6 +318,7 @@
       <div class="grid2">
         <label>Название шаблона *<input type="text" id="t-name" required></label>
         <label>Приветствие<input type="text" id="t-greeting" placeholder="С уважением,"></label>
+        <label>Приветствие (англ. версия)<input type="text" id="t-greetingEn" placeholder="Best regards,"></label>
         <label>Компания (после должности)<input type="text" id="t-companyName"></label>
         <label>Телефон компании<input type="tel" id="t-companyPhone"></label>
         <label>Сайт — текст<input type="text" id="t-webLabel" placeholder="www.estatecrm.io"></label>
@@ -344,6 +370,6 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="vendor/cropper.min.js"></script>
-<script type="module" src="js/app.js?v=15"></script>
+<script type="module" src="js/app.js?v=16"></script>
 </body>
 </html>

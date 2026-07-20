@@ -43,6 +43,7 @@ export function defaultTemplateConfig() {
   return {
     required: ['firstName', 'lastName', 'position', 'email'],
     greeting: 'С уважением,',
+    greetingEn: 'Best regards,',
     companyName: 'EstateCRM',
     logo: { src: 'assets/logo.png', width: 169, height: 29, alt: 'EstateCRM', href: 'https://www.estatecrm.io' },
     companyPhone: '+7 495 256-22-25',
