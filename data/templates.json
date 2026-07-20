@@ -2,7 +2,7 @@
   "templates": [
     {
       "id": "estatecrm-main",
-      "name": "EstateCRM — основной",
+      "name": "EstateCRM",
       "renderer": "estatecrm-classic",
       "config": {
         "required": [
@@ -20,13 +20,13 @@
           "alt": "EstateCRM",
           "href": "https://www.estatecrm.io"
         },
-        "companyPhone": "+7 495 256-22-25",
+        "companyPhone": "+7 495 019-30-13",
         "website": {
           "label": "www.estatecrm.io",
           "url": "https://www.estatecrm.io"
         },
         "colors": {
-          "accent": "#1D325C",
+          "accent": "#1d325c",
           "text": "#212121"
         },
         "socials": [
@@ -80,7 +80,7 @@
           }
         ],
         "button": {
-          "enabled": true,
+          "enabled": false,
           "image": "assets/icons/zoom-button.png",
           "width": 174,
           "height": 39,
