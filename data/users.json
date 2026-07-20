@@ -105,6 +105,25 @@
         "iv": "XAz5lRAAuZd40v1E",
         "ct": "1yIfLYHrhkaL5y1ftXkHMgDPGh8MAvC5Dtro1DDDhqjTzeikzesQOdBhrB3JtwZua8UWJUt4J98JjDlH"
       }
+    },
+    {
+      "id": "u-67e1cc04",
+      "employeeId": "emp-d6708b74",
+      "email": "y.vdovchenko@trace-it.ru",
+      "displayName": "Юрий Вдовченко",
+      "role": "user",
+      "invite": {
+        "salt": "dSo7JfXrQIZZSAmE6BGvoQ==",
+        "verifier": "7XySotTouytkBplgfXiqVOsXDQ9MbQ87+J30xfh3AC8=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "oQ20GBYeMWdubOtx",
+          "ct": "DyHwr80fAtb8X8JCkW1OIyxTNs5459a9P5zaf1yU902Bru4kxG0jv3g+diJRRR7SeOqoKdLsBUXiLAdm"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
