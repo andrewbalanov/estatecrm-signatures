@@ -105,6 +105,25 @@
         "iv": "XAz5lRAAuZd40v1E",
         "ct": "1yIfLYHrhkaL5y1ftXkHMgDPGh8MAvC5Dtro1DDDhqjTzeikzesQOdBhrB3JtwZua8UWJUt4J98JjDlH"
       }
+    },
+    {
+      "id": "u-test-en",
+      "employeeId": "emp-test-en",
+      "email": "p.testov@estatecrm.io",
+      "displayName": "Пётр Тестов",
+      "role": "user",
+      "invite": {
+        "salt": "U/sWRR2BjWQ7Zkr8CUnJOQ==",
+        "verifier": "cb2puQ64aaoqQV31xy5fZk287htwKAgDFUhiHFRDMSg=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "kCd+BwywELWR0W6/",
+          "ct": "77UPFCK9VK7tM57T9ROvHq8BBVoaKigavFRk8m4qOT8Px/SliUFmWj0XKjLi0xKIKSx8o0q9Qr2Y7bU3"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
