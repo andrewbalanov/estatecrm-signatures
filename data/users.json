@@ -182,18 +182,15 @@
       "email": "a.korzhavy@trace-it.ru",
       "displayName": "Антон Коржавый",
       "role": "user",
-      "invite": {
-        "salt": "VA88CN+PUNPwegrVTg8izg==",
-        "verifier": "upUuRwL6mGn9PubhTlocJVV/Prh5uwFsShbDmWCvvho=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "XSv40DuIfNrW55fr",
-          "ct": "C32bub2mcer9KBoa+Y/qqZX9tZoP7DF4TW0ny/17MzF48UJOnmZR+/wvGCxZAfY8qiT6O3Ewq4OwHJa3"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "QxRxgL7fzki9wjI5DJZzww==",
+      "verifier": "YuFo4qjo3muxrnPpcRh8f9NhSvF3M4t0jbQXZaDvqhE=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "Hr4X1VPRrqrW1K8h",
+        "ct": "aykzBxhw3RN2PF2JWcMEknxdwB5MWkN2by8QctTIuQN6cWhagUdjRdQas+t7t211f8qSVHDtI0SOxRht"
+      }
     },
     {
       "id": "u-cf114bed",
