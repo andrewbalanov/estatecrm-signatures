@@ -105,6 +105,44 @@
         "iv": "XAz5lRAAuZd40v1E",
         "ct": "1yIfLYHrhkaL5y1ftXkHMgDPGh8MAvC5Dtro1DDDhqjTzeikzesQOdBhrB3JtwZua8UWJUt4J98JjDlH"
       }
+    },
+    {
+      "id": "u-test-x",
+      "employeeId": "emp-test-x",
+      "email": "x.test@estatecrm.io",
+      "displayName": "Анна Иксова",
+      "role": "user",
+      "invite": {
+        "salt": "Ujk4+h/8NPmldf1hWtL8SA==",
+        "verifier": "K948EgZ3MNixW1GQTCyC1rwr2LJNLLumkCNCOdb8rdM=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "TSyOKMNMhVseUFW/",
+          "ct": "iGvtQM+SF+Os7U7vvcXNG+Ke9loAm+zxC6U8qDmEclcKjOopN9iDnwGZCVE6/TxTGWT2yl2riAGv0evx"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
+    },
+    {
+      "id": "u-test-y",
+      "employeeId": "emp-test-y",
+      "email": "y.test@estatecrm.io",
+      "displayName": "Борис Игрекова",
+      "role": "user",
+      "invite": {
+        "salt": "wNXh3wSKKCdfyPggnUiwUg==",
+        "verifier": "0hedzPCzR9m/Fo4eKmHvrTkYUyyPWvpE6Vr6ixabtlI=",
+        "encDataKey": {
+          "v": 1,
+          "alg": "AES-256-GCM",
+          "iv": "E7D2vVotJ9R7SJWw",
+          "ct": "/uUupxP75WpRn17BEf3eIOy0f3tzGMDXyw6ihgjVDSSiMLjS9NePw9tPewkGSF32kOUllc2jcLeCykgf"
+        },
+        "createdAt": "2026-07-20"
+      },
+      "invitedAt": "2026-07-20"
     }
   ],
   "encToken": {
