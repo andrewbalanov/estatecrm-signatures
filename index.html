@@ -7,7 +7,7 @@
 <title>EstateCRM — Подписи</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D325C'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/cropper.min.css">
-<link rel="stylesheet" href="css/app.css?v=13">
+<link rel="stylesheet" href="css/app.css?v=14">
 </head>
 <body>
 
@@ -287,7 +287,7 @@
 
 <!-- МОДАЛ: КОНСТРУКТОР ШАБЛОНА (администратор) -->
 <div id="modal-tpl" class="modal hidden">
-  <div class="modal-box">
+  <div class="modal-box sig-box">
     <h2 id="tpl-form-title">Новый шаблон</h2>
     <form id="tpl-form">
       <div class="grid2">
@@ -323,6 +323,14 @@
         <legend>Обязательные поля — без них подпись нельзя установить</legend>
         <div id="t-required" class="req-grid"></div>
       </fieldset>
+      <div class="inst-step">Предпросмотр — как увидят получатели</div>
+      <div class="row gap sig-toolbar">
+        <div class="segmented" id="tpl-prev-mode">
+          <button type="button" class="seg active" data-mode="desktop">Компьютер</button>
+          <button type="button" class="seg" data-mode="mobile">iPhone</button>
+        </div>
+      </div>
+      <div class="sig-preview-wrap"><iframe id="tpl-preview" title="Превью шаблона"></iframe></div>
       <div class="row gap end">
         <button type="button" id="tpl-delete" class="danger hidden">Удалить шаблон</button>
         <span class="flex-spacer"></span>
@@ -336,6 +344,6 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="vendor/cropper.min.js"></script>
-<script type="module" src="js/app.js?v=13"></script>
+<script type="module" src="js/app.js?v=14"></script>
 </body>
 </html>

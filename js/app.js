@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=13';
-import * as cr from './crypto.js?v=13';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=13';
+import { BASE_URL } from './config.js?v=14';
+import * as cr from './crypto.js?v=14';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=14';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=13';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=13';
+} from './templates.js?v=14';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=14';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1053,9 +1053,71 @@ function openTplModal(id) {
     reqWrap.appendChild(label);
   }
   $('#modal-tpl').classList.remove('hidden');
+  tplPrevMode = 'desktop';
+  $$('#tpl-prev-mode .seg').forEach((b) => b.classList.toggle('active', b.dataset.mode === 'desktop'));
+  refreshTplPreview();
 }
 
 $('#tpl-cancel').addEventListener('click', () => $('#modal-tpl').classList.add('hidden'));
+
+// Живой предпросмотр конструктора: шаблон собирается из текущих значений формы.
+function tplFormTemplate() {
+  const existing = state.templates.find((t) => t.id === state.editingTplId);
+  const cfg = JSON.parse(JSON.stringify(existing ? existing.config : defaultTemplateConfig()));
+  cfg.greeting = $('#t-greeting').value.trim();
+  cfg.companyName = $('#t-companyName').value.trim();
+  cfg.companyPhone = $('#t-companyPhone').value.trim();
+  cfg.website = { label: $('#t-webLabel').value.trim(), url: $('#t-webUrl').value.trim() };
+  cfg.colors = { accent: $('#t-accent').value, text: $('#t-text').value };
+  cfg.button = cfg.button || defaultTemplateConfig().button;
+  cfg.button.enabled = $('#t-btnEnabled').checked;
+  cfg.button.url = $('#t-btnUrl').value.trim();
+  const h = Math.max(20, Math.min(60, parseInt($('#t-logo-height').value, 10) || 32));
+  if (!$('#t-logo-enabled').checked) {
+    cfg.logo = null;
+  } else if (state.pendingLogo) {
+    cfg.logo = {
+      src: state.pendingLogo.dataUrl,
+      width: Math.round(state.pendingLogo.ratio * h),
+      height: h,
+      alt: $('#t-name').value.trim(),
+      href: cfg.website.url || '#',
+    };
+  } else if (cfg.logo && cfg.logo.src) {
+    const ratio = cfg.logo.width / cfg.logo.height;
+    cfg.logo.height = h;
+    cfg.logo.width = Math.round(ratio * h);
+  }
+  return {
+    id: existing ? existing.id : 'tpl-preview',
+    name: $('#t-name').value.trim() || 'Шаблон',
+    renderer: existing ? existing.renderer : 'estatecrm-classic',
+    config: cfg,
+  };
+}
+
+let tplPrevMode = 'desktop';
+let tplPreviewTimer = null;
+function refreshTplPreview() {
+  if ($('#modal-tpl').classList.contains('hidden')) return;
+  const tpl = tplFormTemplate();
+  const sample = tplPreviewEmployee(tpl);
+  const html = renderSignature(tpl, sample, BASE_URL);
+  setPreview($('#tpl-preview'), html, tplPrevMode, `${sample.firstName} ${sample.lastName}`);
+}
+
+for (const ev of ['input', 'change']) {
+  $('#tpl-form').addEventListener(ev, () => {
+    clearTimeout(tplPreviewTimer);
+    tplPreviewTimer = setTimeout(refreshTplPreview, 350);
+  });
+}
+
+$$('#tpl-prev-mode .seg').forEach((b) => b.addEventListener('click', () => {
+  $$('#tpl-prev-mode .seg').forEach((x) => x.classList.toggle('active', x === b));
+  tplPrevMode = b.dataset.mode;
+  refreshTplPreview();
+}));
 
 // Логотип шаблона: нормализуем в PNG высотой до 120px (запас для Retina),
 // ширина в подписи считается по пропорциям от выбранной высоты.
@@ -1079,6 +1141,7 @@ $('#t-logo-input').addEventListener('change', (e) => {
         state.pendingLogo = { blob, dataUrl, ratio: img.naturalWidth / img.naturalHeight };
         $('#t-logo-preview').innerHTML = `<img src="${dataUrl}" alt="">`;
         $('#t-logo-enabled').checked = true;
+        refreshTplPreview();
       }, 'image/png');
     };
     img.onerror = () => toast('Не удалось прочитать файл логотипа.', true);

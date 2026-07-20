@@ -177,8 +177,11 @@ function renderEstateCrmClassic(template, employee, baseUrl, opts = {}) {
 </td></tr>`
     : '';
 
-  // Пустая строка-отступ в самом начале подписи (до «С уважением, …»)
-  const topSpacer = `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">&nbsp;</td></tr>`;
+  // Начало подписи: отступ, «полосочка» (—) и ещё отступ — до «С уважением, …»
+  const spacerRow = `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;">&nbsp;</td></tr>`;
+  const topSpacer = spacerRow
+    + `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};">—</td></tr>`
+    + spacerRow;
 
   const greeting = cfg.greeting
     ? `<tr><td style="font-family:${fam};font-size:${px(14)}px;line-height:1.4;color:${textColor};padding:0 0 14px 0;">${escapeHtml(cfg.greeting)}<br>${escapeHtml(fullName)}</td></tr>`
