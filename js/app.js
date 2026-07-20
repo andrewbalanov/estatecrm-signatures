@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=16';
-import * as cr from './crypto.js?v=16';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=16';
+import { BASE_URL } from './config.js?v=17';
+import * as cr from './crypto.js?v=17';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=17';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=16';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=16';
+} from './templates.js?v=17';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=17';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -1439,6 +1439,7 @@ function createInstaller(root, cfg) {
     el('.inst-htm').classList.toggle('hidden', st.clientId !== 'outlook-win');
     el('.inst-howto summary').textContent = `Как вставить в ${client.name}`;
     el('.inst-howto ol').innerHTML = client.steps.map((s) => `<li>${s}</li>`).join('');
+    if (cfg.onRender) cfg.onRender();
   }
   el('.inst-back').addEventListener('click', () => {
     st.sigIndex = null;
@@ -1654,6 +1655,7 @@ const myInstaller = createInstaller($('#my-installer'), {
     const d = myDraft();
     return !!(d && d.en && d.en.enabled);
   },
+  onRender: () => updateMyReqMarks(),
   onSelect: (i) => {
     state.mySigIndex = i;
     const sig = state.mySigs[i];
