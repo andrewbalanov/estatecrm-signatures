@@ -1,6 +1,6 @@
 // Клиент GitHub Contents API: чтение и запись файлов репозитория.
-import { OWNER, REPO, BRANCH } from './config.js?v=4';
-import { b64encode, b64decode } from './crypto.js?v=4';
+import { OWNER, REPO, BRANCH } from './config.js?v=5';
+import { b64encode, b64decode } from './crypto.js?v=5';
 
 const API = 'https://api.github.com';
 
@@ -24,11 +24,25 @@ export class GitHubStore {
   // Проверяет, что токен действителен и даёт право записи в репозиторий.
   async validate() {
     const res = await fetch(`${API}/repos/${OWNER}/${REPO}`, { headers: this.headers() });
+    if (res.status === 401) throw new Error('GitHub: токен недействителен или отозван (401).');
+    if (res.status === 404) {
+      throw new Error(`Токен не видит репозиторий ${REPO}. В настройках токена: Repository access → «Only select repositories» → выберите ${REPO}.`);
+    }
     if (!res.ok) throw new Error(`GitHub: ${res.status} ${res.statusText}`);
     const repo = await res.json();
     if (!repo.permissions || !repo.permissions.push) {
       throw new Error('Токен действителен, но не даёт права записи (Contents: Read and write).');
     }
+    // GET /repos отражает права ПОЛЬЗОВАТЕЛЯ, а не токена (частая ловушка fine-grained
+    // токенов) — поэтому реально проверяем доступ токена к содержимому.
+    const probe = await fetch(
+      `${API}/repos/${OWNER}/${REPO}/contents/data/users.json?ref=${BRANCH}&t=${Date.now()}`,
+      { headers: this.headers(), cache: 'no-store' }
+    );
+    if (probe.status === 403 || probe.status === 404) {
+      throw new Error('Токену не хватает права на содержимое репозитория. В настройках токена: Permissions → Repository permissions → Contents → «Read and write», Repository access → только ' + REPO + '.');
+    }
+    if (!probe.ok) throw new Error(`GitHub: проверка доступа не удалась (${probe.status}).`);
     return true;
   }
 
@@ -73,7 +87,10 @@ export class GitHubStore {
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`GitHub: не удалось сохранить ${path} (${res.status}) ${err.message || ''}`);
+      const hint = res.status === 403
+        ? ' Токену не хватает права Contents: Read and write — проверьте настройки токена.'
+        : '';
+      throw new Error(`GitHub: не удалось сохранить ${path} (${res.status}) ${err.message || ''}${hint}`);
     }
     const data = await res.json();
     this.shaCache.set(path, data.content.sha);

@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=4';
-import * as cr from './crypto.js?v=4';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=4';
+import { BASE_URL } from './config.js?v=5';
+import * as cr from './crypto.js?v=5';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=5';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig,
-} from './templates.js?v=4';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=4';
+} from './templates.js?v=5';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=5';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -349,11 +349,22 @@ $('#token-save').addEventListener('click', async () => {
 });
 
 $('#token-skip').addEventListener('click', async () => {
-  state.store = new ReadOnlyStore();
+  // Не понижаем уже работающее подключение до «только просмотр»
+  if (!(state.store && state.store.canWrite)) state.store = new ReadOnlyStore();
   await enterApp();
 });
 
-$('#btn-token').addEventListener('click', () => showScreen('token'));
+$('#token-back').addEventListener('click', () => {
+  showScreen(isAdmin() ? 'main' : 'my');
+});
+
+$('#btn-token').addEventListener('click', () => {
+  const working = !!(state.store && state.store.canWrite && !state.store.isDev);
+  $('#token-status').classList.toggle('hidden', !working);
+  $('#token-back').classList.remove('hidden');
+  $('#token-error').classList.add('hidden');
+  showScreen('token');
+});
 
 for (const id of ['#btn-logout', '#my-logout']) {
   $(id).addEventListener('click', () => {

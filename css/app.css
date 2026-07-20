@@ -229,6 +229,16 @@ code { background: #eef1f7; padding: 1px 6px; border-radius: 4px; font-size: 13p
 label.req::after { content: " *"; color: var(--danger); font-weight: 700; }
 label.miss input { border-color: #e5a09a; background: #fff7f6; }
 
+.ok-box {
+  background: #e9f7ef;
+  border: 1px solid #c6e8d3;
+  color: #1e7a45;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
 /* ---------- Предупреждение об обязательных полях ---------- */
 .warn-box {
   background: #fff4e0;
