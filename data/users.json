@@ -100,13 +100,13 @@
       "displayName": "Роман Язаджи",
       "role": "user",
       "invite": {
-        "salt": "aV2svc0TEkMWCCyfpUmfZQ==",
-        "verifier": "2gjmeFgQ3ryfIHl8SK61+pFFgcKizB7Iocd5cX2KS7g=",
+        "salt": "htToc3KwHBXIjaCV0v0tXQ==",
+        "verifier": "EY3/EzqrsXr8Me+EgQzZ+4WqXTrttVMAHTJnjSZlJ5s=",
         "encDataKey": {
           "v": 1,
           "alg": "AES-256-GCM",
-          "iv": "NZB52dJg/hbK3iGA",
-          "ct": "XAeEiwAmXcinex/AWJePLtC2OANSiUL/yVWeqv8kUXZtWR7FeDmL1SnxLayh/RRt1SI2jRDuu8nmhmVP"
+          "iv": "MMwCQsLsZzHwe6dI",
+          "ct": "rh196xQO2CQYMhPF/qvqI4esySFV341d8LGG1LTR/rUZYTbOf0oQG0K7oyUDtd5B9o2YdgoChuXo357s"
         },
         "createdAt": "2026-07-20"
       },
@@ -116,7 +116,7 @@
   "encToken": {
     "v": 1,
     "alg": "AES-256-GCM",
-    "iv": "/NrmWEnb7r4qaKca",
-    "ct": "cIDXriQhRBiYDILRbtIXh7opIBjwj0kf7WODOodLp/5ajHdChVqkcW0yHO0b+bsdcA+UUq6//WhPcIOTZ01kRLYqntfHRkqiO2Mh6pb0iW0gRS1M9xY1aHgDwgbNLyA0hM1rtR6RdPFEeoidMg=="
+    "iv": "Xe0U8XEKffAqStwZ",
+    "ct": "jssbW5Imw77A5hXVUIkwvIWppmiEYnk69V2cbJoL0PlXWt9r5yekLRm1Ff+uY4dkR0i77yTil9tQtHR30fFqn7MvzAFV+xT5AnuXVAYw41q1/qBVokDrPFoHvWKar/w83Y1Sapq7E8Wym6/Jsg=="
   }
 }
