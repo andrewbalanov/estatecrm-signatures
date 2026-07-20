@@ -45,18 +45,15 @@
       "email": "a.labyntsev@trace-it.ru",
       "displayName": "Андрей Лабынцев",
       "role": "user",
-      "invite": {
-        "salt": "9iZR3t0t2G6rfe3CwjgtQg==",
-        "verifier": "mLGMHDgif1azIeSmeBD0aPqMegVR7Tq6zqKsjnnuodY=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "LpsQijOu6SLxyHRZ",
-          "ct": "e4OI5QP4BYJSIX1wmzciEVU8PVUeJ93IFTq4X33VFra+fpLwqvkF7uk1yNoXht0zqXjfCahspLeOR+ud"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "5+sTveUBOwv3nrPzq3rgOA==",
+      "verifier": "+DNk0eP1YEYVwABWVlkDquLpcOihTYCVdnw7rGugUsY=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "cV+DUB+YTs2mqddr",
+        "ct": "7FdtLRNo1OSakke7j5j7Vqdn8t3qNTe/voaaVQH32ZVa0aIUwre0HCaBLkBPzlS7Xpc7bdlOBCOBE9Dq"
+      }
     },
     {
       "id": "u-b01e5f05",
