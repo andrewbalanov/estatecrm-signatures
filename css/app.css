@@ -207,8 +207,8 @@ code { background: #eef1f7; padding: 1px 6px; border-radius: 4px; font-size: 13p
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented .seg { border: none; border-radius: 0; background: #fff; padding: 7px 14px; font-size: 13px; color: var(--muted); }
 .segmented .seg.active { background: var(--accent); color: #fff; }
-.sig-preview-wrap { border: 1px dashed var(--border); border-radius: 8px; background: #fff; display: flex; justify-content: center; padding: 10px; overflow-x: auto; }
-#sig-preview { border: 0; width: 600px; height: 360px; transition: width .2s ease; background: #fff; }
+.sig-preview-wrap { border: 1px dashed var(--border); border-radius: 8px; background: #fff; display: flex; justify-content: safe center; padding: 10px; overflow-x: auto; }
+#sig-preview, #my-preview { border: 0; width: 600px; height: 360px; transition: width .2s ease; background: #fff; flex-shrink: 0; }
 .sig-box h3 { color: var(--accent); margin: 22px 0 10px; }
 .client-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 640px) { .client-cards { grid-template-columns: 1fr; } }
