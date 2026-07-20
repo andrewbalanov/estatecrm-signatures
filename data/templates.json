@@ -33,8 +33,8 @@
           {
             "network": "linkedin",
             "enabled": true,
-            "url": "https://www.linkedin.com/in/andrewbalanov",
-            "perEmployee": true
+            "url": "https://t.me/estatecrm",
+            "perEmployee": false
           },
           {
             "network": "telegram",
@@ -68,8 +68,8 @@
           },
           {
             "network": "vk",
-            "enabled": false,
-            "url": "",
+            "enabled": true,
+            "url": "https://vk.com/video/@club227442111",
             "perEmployee": false
           },
           {
@@ -129,7 +129,7 @@
           },
           {
             "network": "telegram",
-            "enabled": false,
+            "enabled": true,
             "url": "",
             "perEmployee": false
           },
