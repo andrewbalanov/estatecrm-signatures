@@ -335,18 +335,15 @@
       "email": "a.olyakov@trace-it.ru",
       "displayName": "Александр Оляков",
       "role": "user",
-      "invite": {
-        "salt": "kcEmQkdqMJ47szUSCqCL8g==",
-        "verifier": "JDtOLwIfFL5XBl2DIggUaLQzfIG2rUqUU1OqINy/6mg=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "dujU+LUnzFXk5OUV",
-          "ct": "rvHYWlEHBVn8I0VOMIL8+fswAHCzho2ArII5x8OfIr+EuiilzEd07DBYe7tepMm1/KuKguM5OLNr8yFi"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "HhiZtkVhttXboWFbXLBKJg==",
+      "verifier": "irM6iVu5dQnutVfPnp/KB742hA/xjW8X1mOkFxZUa7E=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "xUrHqIB6fRZwjABv",
+        "ct": "WQn4sYCDAmvv0zEKJ2j8rV+kZLc6JEiW6D2Hew1TorDChtfLl1o3kAy84QULSCyaK3c7OFv1eKdQTJBM"
+      }
     }
   ],
   "encToken": {
