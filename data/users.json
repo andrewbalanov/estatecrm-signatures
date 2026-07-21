@@ -58,18 +58,15 @@
       "email": "g.tsygankov@trace-it.ru",
       "displayName": "Глеб Цыганков",
       "role": "user",
-      "invite": {
-        "salt": "+zyGPd7tmhgdy/E0/Yruzw==",
-        "verifier": "AMFJpYr4JcLsplNr7bXQluDWoG6xvBs6zY9VeTchRTQ=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "TSzMAj65sQVKee11",
-          "ct": "B7aPuZ5Z1IJ170/u1UKzkZXS+fWvuQ7ARAF/X3SPlAmEyiZArCOtUwHh5J8Y2BoxUO/KLZYeSz4ZnC6L"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "kxTsLS9Taodj8zDerpCxLw==",
+      "verifier": "SeTIx2rcogSUFIlcKRRkiNN6gMn6o9+6L6nOzD5fgf4=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "c4qSTM8uhrslwVts",
+        "ct": "z5s0QXoN7s0IeV6iyfpUhTtERnIZgcpwx9QghX+cIiQyJ/x6mV64Kg4lRIywBRov7y8p8OyJx5hxctpE"
+      }
     },
     {
       "id": "u-3a88e8a9",
