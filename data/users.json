@@ -297,18 +297,15 @@
       "email": "m.tazyukov@trace-it.ru",
       "displayName": "Марат Тазюков",
       "role": "user",
-      "invite": {
-        "salt": "95Tz1hfTX4dgRt7t7Yswdg==",
-        "verifier": "U6YTGUBzFbscHcMvZIj5T1goOCbreKe2ZwH5Uehntq4=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "s+rhj7R9heFMYHq0",
-          "ct": "IXqCkldCG0CZXVfJoaeKYgug4JD3P2eWatAEfr8uC5GpX9+hwvYhrtYTf0xH64iYqPtM8VZAl4YLWD6J"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "e+bxqT7eK6tWi/GYXuT/Sg==",
+      "verifier": "Ygwsh65IQm/yQIhkB+gHdDukAYk5hsFmwugBjbQQkHg=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "uSxN2y9p4Mxwa1nR",
+        "ct": "hbb7yYKbcDlCt0TTJ3qd1hmQlYp1FxrUunDJDXI78i4+9vOo1em6c7IUIs5L8HBzWPUvFQ7AHS6OdSoc"
+      }
     },
     {
       "id": "u-a4781e93",
