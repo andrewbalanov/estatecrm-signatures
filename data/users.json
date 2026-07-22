@@ -259,18 +259,15 @@
       "email": "v.udalov@trace-it.ru",
       "displayName": "Владислав Удалов",
       "role": "user",
-      "invite": {
-        "salt": "wqtXWDDkIBBhGgdGBoA10Q==",
-        "verifier": "y3rnYIyYk8w4fTtufvXf1yWn4YlVQTqUBSwFranFHPY=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "HvaPd3D8MWgBtE0k",
-          "ct": "Dkse8GO4xCyhyAnsDiiKomRg93AfwE/LzV8ckO5feSvD5D8BVhLFxOLhhWw29JWyi1H5ebFTgPOcZwBp"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "+JQzEP0huXE+7PqUueoS3A==",
+      "verifier": "uKtPxbMzyCqzWrLkwTwPE1AFgFBEGEg/Vmvxolo3IxM=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "tmTOmg1KLAZbkHOR",
+        "ct": "u+rmAwf+edv0/WfSlPyu/ZSqWFOShquUgbgpzs4ki1ZIgLvykPgOFjdBP6o7N2Ji1sJmFvDidskhXYBC"
+      }
     },
     {
       "id": "u-186828ac",
