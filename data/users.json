@@ -307,18 +307,15 @@
       "email": "d.gorashuk@trace-it.ru",
       "displayName": "Дмитрий Горащук",
       "role": "user",
-      "invite": {
-        "salt": "lHHprPgjLKYkjJ9EsqIK9Q==",
-        "verifier": "ccXeV4E4968bVgi/KkNLShi1KSEbG1I3d16G7WJctbg=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "zojYU7y+kkaySavc",
-          "ct": "2s+ITlMRkXtIYv6o2e2eP8xZTCXXdi3u4l4BghcijZq03WNmC4cffD66cgMjF+Hv5v0Vpx8pVHPaq75L"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "vccxUGHm0T5G6FX/LG314w==",
+      "verifier": "rdfwmP/D9/ElsOMtcFZK+f1fV/2SGTULDvAqUxS9Tmk=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "XuCsg8IuhZW+xn7Q",
+        "ct": "SgMEh+npUOXa0jsHZcrdsTMye+GoQcQ6jtRabXJczma6W1uWjaTo7DycZJRE7AWBQxR9RmUpnGaSaT5I"
+      }
     },
     {
       "id": "u-eee363bd",
