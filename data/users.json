@@ -227,18 +227,15 @@
       "email": "o.rastorgueva@trace-it.ru",
       "displayName": "Ольга Расторгуева",
       "role": "user",
-      "invite": {
-        "salt": "m4viijH0RQhh/bmVJ/xbZw==",
-        "verifier": "Xu+3L2+UPVpAxXxiQjX09YO6r2jhgX0cTxhM4SB4nl4=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "TZLGDpdBVUiWChap",
-          "ct": "b7sOryxXjJRKxzqTLBeEwTgB3vBAlKueTqfv+18ZufoY2M39ymMQESuWHpfEk1YM+G4kkotp2pOwhlJb"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "7uvRi8maTt1z2ignOoPAQA==",
+      "verifier": "7S+coLiWzVQ9/nHUWIX4nyRK7dBgd9qHnjezrb6VOkM=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "VGkZvyhyEfM7jB+u",
+        "ct": "LSYgXXr0ZAaAJUsM8RCg7YQp8v7N+8am1fUetMXkchYcNeq7OJEdt4Ps7agXg8bHbsucPDBKqmAxNIOE"
+      }
     },
     {
       "id": "u-306051f3",
