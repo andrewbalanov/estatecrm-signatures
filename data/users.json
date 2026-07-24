@@ -106,18 +106,15 @@
       "email": "y.vdovchenko@trace-it.ru",
       "displayName": "Юрий Вдовченко",
       "role": "user",
-      "invite": {
-        "salt": "dSo7JfXrQIZZSAmE6BGvoQ==",
-        "verifier": "7XySotTouytkBplgfXiqVOsXDQ9MbQ87+J30xfh3AC8=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "oQ20GBYeMWdubOtx",
-          "ct": "DyHwr80fAtb8X8JCkW1OIyxTNs5459a9P5zaf1yU902Bru4kxG0jv3g+diJRRR7SeOqoKdLsBUXiLAdm"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "UG/8E1fluCZGV6ePR20nBA==",
+      "verifier": "OuIZVYGZiYlzpAanCljkHYePcoKbfP8N6TRlRw/+F0E=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "uhZRUCAueAFcmGFz",
+        "ct": "QUVpRVoPCdwrCTt4gg22CRY9M7A33emqKxcWE1HiJWl0Jgt8q9d66CXb8pt62k1hp3/x8StG6P42qPm9"
+      }
     },
     {
       "id": "u-5c8eea84",
