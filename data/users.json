@@ -205,18 +205,15 @@
       "email": "s.homenko@trace-it.ru",
       "displayName": "Семен Хоменко",
       "role": "user",
-      "invite": {
-        "salt": "HqfQz0vxboqtOApCeUx2/A==",
-        "verifier": "iujw+32oOc1xyYSNEq53/qHiT/aJsVfy8QSUzparUpE=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "1rm9MEdpSn5Su9el",
-          "ct": "nFcxp4JgQEJF0XI5uX/YZoEXbxOdbZSM2gcujMA60ziaaGUjeiy/fGWQjmd61xZIme6aS0apxgAbsGFY"
-        },
-        "createdAt": "2026-07-20"
-      },
-      "invitedAt": "2026-07-20"
+      "invitedAt": "2026-07-20",
+      "salt": "RJdhgOfZUVTazqD17IkTpQ==",
+      "verifier": "vRJqBlp9Kn5MeWAb4C66GVgN06Xo7jfkYJu2V9OhuHk=",
+      "encDataKey": {
+        "v": 1,
+        "alg": "AES-256-GCM",
+        "iv": "p0orSahAevuCDLI3",
+        "ct": "Bx3mBLc6IHBdsGmkwfD7/V46jVFkunYD+BtMcbXX+bWXSnhUYennsThbjDc62+BlBIo+Jh9eU6u9A1ZB"
+      }
     },
     {
       "id": "u-28ecddbc",
