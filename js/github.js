@@ -1,6 +1,6 @@
 // Клиент GitHub Contents API: чтение и запись файлов репозитория.
-import { OWNER, REPO, BRANCH } from './config.js?v=19';
-import { b64encode, b64decode } from './crypto.js?v=19';
+import { OWNER, REPO, BRANCH } from './config.js?v=20';
+import { b64encode, b64decode } from './crypto.js?v=20';
 
 const API = 'https://api.github.com';
 
@@ -44,6 +44,121 @@ export class GitHubStore {
     }
     if (!probe.ok) throw new Error(`GitHub: проверка доступа не удалась (${probe.status}).`);
     return true;
+  }
+
+  // Текущая вершина ветки — точка отсчёта транзакции. GET ref реплицируется
+  // с задержкой, поэтому свой последний коммит помним и предпочитаем его:
+  // если он устареет из-за чужой записи, транзакция получит conflict и повторится.
+  async headSha() {
+    if (this._lastCommitSha) return this._lastCommitSha;
+    const res = await fetch(
+      `${API}/repos/${OWNER}/${REPO}/git/ref/heads/${BRANCH}?t=${Date.now()}`,
+      { headers: this.headers(), cache: 'no-store' }
+    );
+    if (!res.ok) throw new Error(`GitHub: не удалось прочитать ветку ${BRANCH} (${res.status})`);
+    return (await res.json()).object.sha;
+  }
+
+  // Чтение файла на КОНКРЕТНОМ коммите — консистентный снимок для транзакции.
+  // Через Git Data API (дерево + blob): Contents API отдаёт содержимое с
+  // задержкой кэша и может вернуть устаревшую версию, что привело бы
+  // к затиранию чужих изменений.
+  async getFileAt(path, commitSha) {
+    if (!this._treeCache || this._treeCache.sha !== commitSha) {
+      const commitRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/commits/${commitSha}`, {
+        headers: this.headers(), cache: 'no-store',
+      });
+      if (!commitRes.ok) throw new Error(`GitHub: не удалось прочитать коммит (${commitRes.status})`);
+      const treeSha = (await commitRes.json()).tree.sha;
+      const treeRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/trees/${treeSha}?recursive=1`, {
+        headers: this.headers(), cache: 'no-store',
+      });
+      if (!treeRes.ok) throw new Error(`GitHub: не удалось прочитать дерево (${treeRes.status})`);
+      const tree = await treeRes.json();
+      const map = new Map();
+      for (const e of tree.tree || []) if (e.type === 'blob') map.set(e.path, e.sha);
+      this._treeCache = { sha: commitSha, map };
+    }
+    const blobSha = this._treeCache.map.get(path);
+    if (!blobSha) return null;
+    const blobRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/blobs/${blobSha}`, {
+      headers: this.headers(), cache: 'no-store',
+    });
+    if (!blobRes.ok) throw new Error(`GitHub: не удалось прочитать ${path} (${blobRes.status})`);
+    const bytes = b64decode((await blobRes.json()).content.replace(/\n/g, ''));
+    return { bytes, text: new TextDecoder().decode(bytes), sha: blobSha };
+  }
+
+  // Записывает НЕСКОЛЬКО файлов ОДНИМ коммитом (Git Data API).
+  // files: [{path, content: Uint8Array|string}] или [{path, remove: true}].
+  // baseSha — коммит, на котором строились изменения: если ветка с тех пор
+  // сдвинулась, GitHub отклонит обновление ссылки и вернётся conflict:true
+  // (вызывающий перечитает данные и повторит — оптимистичная блокировка).
+  async commitFiles(files, message, baseSha) {
+    const base = baseSha || await this.headSha();
+    const baseCommitRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/commits/${base}`, {
+      headers: this.headers(), cache: 'no-store',
+    });
+    if (!baseCommitRes.ok) throw new Error(`GitHub: не удалось прочитать коммит (${baseCommitRes.status})`);
+    const baseTree = (await baseCommitRes.json()).tree.sha;
+
+    const tree = [];
+    for (const f of files) {
+      if (f.remove) {
+        tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null });
+        continue;
+      }
+      const bytes = typeof f.content === 'string'
+        ? new TextEncoder().encode(f.content) : f.content;
+      const blobRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/blobs`, {
+        method: 'POST',
+        headers: { ...this.headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: b64encode(bytes), encoding: 'base64' }),
+      });
+      if (!blobRes.ok) {
+        const err = await blobRes.json().catch(() => ({}));
+        throw new Error(`GitHub: не удалось загрузить ${f.path} (${blobRes.status}) ${err.message || ''}`);
+      }
+      tree.push({ path: f.path, mode: '100644', type: 'blob', sha: (await blobRes.json()).sha });
+    }
+
+    const treeRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/trees`, {
+      method: 'POST',
+      headers: { ...this.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base_tree: baseTree, tree }),
+    });
+    if (!treeRes.ok) {
+      const err = await treeRes.json().catch(() => ({}));
+      throw new Error(`GitHub: не удалось собрать дерево (${treeRes.status}) ${err.message || ''}`);
+    }
+
+    const commitRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/commits`, {
+      method: 'POST',
+      headers: { ...this.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, tree: (await treeRes.json()).sha, parents: [base] }),
+    });
+    if (!commitRes.ok) {
+      const err = await commitRes.json().catch(() => ({}));
+      throw new Error(`GitHub: не удалось создать коммит (${commitRes.status}) ${err.message || ''}`);
+    }
+    const newSha = (await commitRes.json()).sha;
+
+    const refRes = await fetch(`${API}/repos/${OWNER}/${REPO}/git/refs/heads/${BRANCH}`, {
+      method: 'PATCH',
+      headers: { ...this.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sha: newSha, force: false }),
+    });
+    if (refRes.status === 422) { this._lastCommitSha = null; this._treeCache = null; return { conflict: true }; }
+    if (!refRes.ok) {
+      const err = await refRes.json().catch(() => ({}));
+      const hint = refRes.status === 403
+        ? ' Токену не хватает права Contents: Read and write.' : '';
+      throw new Error(`GitHub: не удалось сохранить изменения (${refRes.status}) ${err.message || ''}${hint}`);
+    }
+    this.shaCache.clear();
+    this._treeCache = null;
+    this._lastCommitSha = newSha;
+    return { conflict: false, sha: newSha };
   }
 
   // Возвращает {text, bytes, sha} или null, если файла нет.
@@ -147,6 +262,18 @@ export class DevStore {
   async deleteFile(path) {
     this.memory.delete(path);
   }
+
+  async headSha() { return 'dev'; }
+
+  async getFileAt(path) { return this.getFile(path); }
+
+  async commitFiles(files) {
+    for (const f of files) {
+      if (f.remove) this.memory.delete(f.path);
+      else await this.putFile(f.path, f.content);
+    }
+    return { conflict: false, sha: 'dev' };
+  }
 }
 
 // Режим «только просмотр»: чтение файлов прямо с опубликованного сайта.
@@ -168,5 +295,13 @@ export class ReadOnlyStore {
 
   async deleteFile() {
     throw new Error('Режим просмотра: удаление недоступно. Подключите GitHub-токен.');
+  }
+
+  async headSha() { return null; }
+
+  async getFileAt(path) { return this.getFile(path); }
+
+  async commitFiles() {
+    throw new Error('Режим просмотра: сохранение недоступно. Подключите GitHub-токен.');
   }
 }

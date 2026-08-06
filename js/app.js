@@ -6,14 +6,14 @@
 //   из пароля (PBKDF2). У приглашённого до установки пароля роль конверта играет
 //   invite-токен из персональной ссылки: открыв её, сотрудник сам ставит пароль,
 //   и одноразовый invite-конверт удаляется.
-import { BASE_URL } from './config.js?v=19';
-import * as cr from './crypto.js?v=19';
-import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=19';
+import { BASE_URL } from './config.js?v=20';
+import * as cr from './crypto.js?v=20';
+import { GitHubStore, DevStore, ReadOnlyStore } from './github.js?v=20';
 import {
   NETWORKS, EMPLOYEE_FIELDS, renderSignature, renderPlainText, fullHtmlDocument,
   missingRequired, defaultTemplateConfig, escapeHtml,
-} from './templates.js?v=19';
-import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=19';
+} from './templates.js?v=20';
+import { MAIL_CLIENTS, copyRichHtml, copyPlainText, downloadFile } from './clients.js?v=20';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -204,14 +204,14 @@ $('#setpass-form').addEventListener('submit', async (e) => {
     if (!state.store || !state.store.canWrite) {
       throw new Error('Сохранение пароля недоступно — обратитесь к администратору.');
     }
-    await mutateUsers(`Установлен пароль: ${me.displayName}`, (fresh) => {
+    await applyChanges(`Установлен пароль: ${me.displayName}`, { users: (fresh) => {
       const rec = fresh.users.find((u) => u.id === me.id);
       if (!rec) throw new Error('Приглашение не найдено — запросите новую ссылку.');
       rec.salt = me.salt;
       rec.verifier = me.verifier;
       rec.encDataKey = me.encDataKey;
       delete rec.invite;
-    });
+    } });
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
     history.replaceState(null, '', location.pathname + location.search);
     $('#setpass-p1').value = '';
@@ -322,8 +322,8 @@ async function tryLegacyTokenMigration() {
     await store.validate();
     const encTokLegacy = await encryptObjForDoc(state.dataKey, token);
     state.store = store;
-    await mutateUsers('Токен перенесён из локального хранилища администратора', (fresh) => {
-      fresh.encToken = encTokLegacy;
+    await applyChanges('Токен перенесён из локального хранилища администратора', {
+      users: (fresh) => { fresh.encToken = encTokLegacy; },
     });
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     toast('GitHub-токен перенесён в зашифрованное хранилище сервиса.');
@@ -344,8 +344,8 @@ $('#token-save').addEventListener('click', async () => {
     await store.validate();
     const encTokNew = await encryptObjForDoc(state.dataKey, token);
     state.store = store;
-    await mutateUsers('Обновлён GitHub-токен сервиса', (fresh) => {
-      fresh.encToken = encTokNew;
+    await applyChanges('Обновлён GitHub-токен сервиса', {
+      users: (fresh) => { fresh.encToken = encTokNew; },
     });
     $('#token-input').value = '';
     toast('Сохранение подключено для всех сотрудников.');
@@ -428,45 +428,70 @@ async function loadAll() {
   }
 }
 
-// Безопасная запись users.json: мутация применяется к СВЕЖЕЙ копии из репозитория,
-// чтобы параллельные изменения (например, активации приглашений другими
-// сотрудниками) не затирались записью «файлом целиком».
-async function mutateUsers(message, fn) {
-  let doc = state.usersDoc;
-  try {
-    const fresh = await state.store.getFile('data/users.json');
-    if (fresh) doc = JSON.parse(fresh.text);
-  } catch (e) { console.warn('users.json: свежая копия недоступна, пишем текущую', e); }
-  fn(doc);
-  state.usersDoc = doc;
-  if (state.session) {
-    state.me = doc.users.find((u) => u.id === state.session.userId) || state.me;
-  }
-  await state.store.putFile('data/users.json', JSON.stringify(doc, null, 2) + '\n', message);
-}
+// Единая транзакция записи: ВСЕ файлы одного действия (фото + база сотрудников +
+// доступы + шаблоны) уходят ОДНИМ коммитом. Это втрое сокращает число публикаций
+// GitHub Pages (меньше конкурирующих деплоев) и делает изменение неделимым.
+//
+// Мутации применяются к снимку данных на конкретном коммите; если ветка за это
+// время сдвинулась (например, коллега активировал приглашение), GitHub отклоняет
+// запись, и мы автоматически повторяем всё на свежих данных.
+//
+// opts: { employees(list), users(doc), templates(list), files: [{path, content}],
+//         remove: [path] }
+async function applyChanges(message, opts) {
+  const ATTEMPTS = 4;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    const base = await state.store.headSha();
+    const files = [];
 
-// То же для базы сотрудников (шифрованной).
-async function mutateEmployees(message, fn) {
-  let list = state.employees;
-  try {
-    const file = await state.store.getFile('data/employees.json.enc');
-    if (file) {
-      const data = await cr.decryptJson(state.dataKey, file.text);
-      list = normalizeEmployees(data.employees || []);
+    let doc = state.usersDoc;
+    let list = state.employees;
+    let templates = state.templates;
+
+    if (opts.users) {
+      const fresh = await state.store.getFileAt('data/users.json', base);
+      doc = fresh ? JSON.parse(fresh.text) : doc;
+      opts.users(doc);
+      files.push({ path: 'data/users.json', content: JSON.stringify(doc, null, 2) + '\n' });
     }
-  } catch (e) { console.warn('employees: свежая копия недоступна, пишем текущую', e); }
-  fn(list);
-  state.employees = list;
-  const payload = await cr.encryptJson(state.dataKey, { v: 3, employees: list });
-  await state.store.putFile('data/employees.json.enc', payload, message);
-}
 
-async function saveTemplates(message) {
-  await state.store.putFile(
-    'data/templates.json',
-    JSON.stringify({ templates: state.templates }, null, 2) + '\n',
-    message
-  );
+    if (opts.employees) {
+      const fresh = await state.store.getFileAt('data/employees.json.enc', base);
+      list = fresh ? normalizeEmployees((await cr.decryptJson(state.dataKey, fresh.text)).employees || []) : list;
+      opts.employees(list);
+      files.push({
+        path: 'data/employees.json.enc',
+        content: await cr.encryptJson(state.dataKey, { v: 3, employees: list }),
+      });
+    }
+
+    if (opts.templates) {
+      const fresh = await state.store.getFileAt('data/templates.json', base);
+      templates = fresh ? JSON.parse(fresh.text).templates : templates;
+      opts.templates(templates);
+      files.push({ path: 'data/templates.json', content: JSON.stringify({ templates }, null, 2) + '\n' });
+    }
+
+    for (const f of opts.files || []) files.push(f);
+    for (const p of opts.remove || []) files.push({ path: p, remove: true });
+    if (!files.length) return;
+
+    const res = await state.store.commitFiles(files, message, base);
+    if (res && res.conflict) {
+      if (attempt === ATTEMPTS) throw new Error('Не удалось сохранить: данные изменены параллельно. Обновите страницу и повторите.');
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+      continue; // повторяем на свежем снимке
+    }
+
+    // Транзакция прошла — фиксируем состояние в памяти
+    if (opts.users) {
+      state.usersDoc = doc;
+      if (state.session) state.me = doc.users.find((u) => u.id === state.session.userId) || state.me;
+    }
+    if (opts.employees) state.employees = list;
+    if (opts.templates) state.templates = templates;
+    return;
+  }
 }
 
 // ---------- Вкладки (администратор) ----------
@@ -785,13 +810,13 @@ $('#emp-form').addEventListener('submit', async (e) => {
     }
 
     let photoUploaded = false;
+    const extraFiles = [];
     if (state.pendingPhoto) {
       if (state.store.isDev) {
         emp.photo = state.pendingPhoto.dataUrl;
       } else {
         const path = `assets/photos/${emp.id}.jpg`;
-        const bytes = new Uint8Array(await state.pendingPhoto.blob.arrayBuffer());
-        await state.store.putFile(path, bytes, `Фото: ${emp.firstName} ${emp.lastName}`);
+        extraFiles.push({ path, content: new Uint8Array(await state.pendingPhoto.blob.arrayBuffer()) });
         emp.photo = path;
         emp.photoVersion = (emp.photoVersion || 0) + 1;
         photoUploaded = true;
@@ -837,11 +862,14 @@ $('#emp-form').addEventListener('submit', async (e) => {
       };
     }
 
-    await mutateEmployees(`${isNew ? 'Добавлен' : 'Обновлён'} сотрудник: ${emp.firstName} ${emp.lastName}`, (list) => {
-      const idx = list.findIndex((x) => x.id === emp.id);
-      if (idx >= 0) list[idx] = emp; else list.push(emp);
+    await applyChanges(`${isNew ? 'Добавлен' : 'Обновлён'} сотрудник: ${emp.firstName} ${emp.lastName}`, {
+      employees: (list) => {
+        const idx = list.findIndex((x) => x.id === emp.id);
+        if (idx >= 0) list[idx] = emp; else list.push(emp);
+      },
+      users: usersMutation || undefined,
+      files: extraFiles,
     });
-    if (usersMutation) await mutateUsers(`Доступы: ${newName}`, usersMutation);
 
     renderEmployees();
     fillDeptFilter();
@@ -871,7 +899,7 @@ $('#acc-reset').addEventListener('click', async () => {
   try {
     const built = await buildInvite();
     const link = `${BASE_URL}#invite=${user.id}.${built.token}`;
-    await mutateUsers(`Новая ссылка для входа: ${user.displayName}`, (fresh) => {
+    await applyChanges(`Новая ссылка для входа: ${user.displayName}`, { users: (fresh) => {
       const u = fresh.users.find((x) => x.id === user.id);
       if (!u) return;
       delete u.salt;
@@ -880,7 +908,7 @@ $('#acc-reset').addEventListener('click', async () => {
       u.invite = built.invite;
       u.email = emp.loginEmail;
       u.displayName = `${emp.firstName} ${emp.lastName}`;
-    });
+    } });
     closeEmpModal();
     showInviteModal(emp, link, user.role);
   } catch (err) {
@@ -901,18 +929,16 @@ $('#emp-delete').addEventListener('click', async () => {
   const btn = $('#emp-delete');
   busy(btn, true, 'Удаляю…');
   try {
-    if (emp.photo && !/^(blob:|data:)/.test(emp.photo) && !state.store.isDev) {
-      await state.store.deleteFile(emp.photo, `Удалено фото: ${emp.firstName} ${emp.lastName}`);
-    }
-    await mutateEmployees(`Удалён сотрудник: ${emp.firstName} ${emp.lastName}`, (list) => {
-      const idx = list.findIndex((x) => x.id === emp.id);
-      if (idx >= 0) list.splice(idx, 1);
+    const removeFiles = (emp.photo && !/^(blob:|data:)/.test(emp.photo) && !state.store.isDev)
+      ? [emp.photo] : [];
+    await applyChanges(`Удалён сотрудник: ${emp.firstName} ${emp.lastName}`, {
+      employees: (list) => {
+        const idx = list.findIndex((x) => x.id === emp.id);
+        if (idx >= 0) list.splice(idx, 1);
+      },
+      users: user ? (fresh) => { fresh.users = fresh.users.filter((u) => u.id !== user.id); } : undefined,
+      remove: removeFiles,
     });
-    if (user) {
-      await mutateUsers(`Отозван доступ: ${user.displayName}`, (fresh) => {
-        fresh.users = fresh.users.filter((u) => u.id !== user.id);
-      });
-    }
     renderEmployees();
     fillDeptFilter();
     closeEmpModal();
@@ -1048,8 +1074,9 @@ function renderTemplatesTab() {
         const copy = JSON.parse(JSON.stringify(tpl));
         copy.id = 'tpl-' + hex8();
         copy.name = `${tpl.name} (копия)`;
-        state.templates.push(copy);
-        await saveTemplates(`Дублирован шаблон: ${tpl.name}`);
+        await applyChanges(`Дублирован шаблон: ${tpl.name}`, {
+          templates: (list) => { list.push(copy); },
+        });
         renderTemplatesTab();
         toast('Шаблон продублирован.');
       } catch (err) {
@@ -1088,7 +1115,13 @@ function renderTemplatesTab() {
       if (!state.store.canWrite) { toast('Режим просмотра: сохранение недоступно.', true); return; }
       busy(e.target, true, 'Сохраняю…');
       try {
-        await saveTemplates(`Настройки соцсетей: ${tpl.name}`);
+        const socialsSnapshot = JSON.parse(JSON.stringify(tpl.config.socials || []));
+        await applyChanges(`Настройки соцсетей: ${tpl.name}`, {
+          templates: (list) => {
+            const t = list.find((x) => x.id === tpl.id);
+            if (t) t.config.socials = socialsSnapshot;
+          },
+        });
         renderTemplatesTab();
         toast('Настройки шаблона сохранены.');
       } catch (err) {
@@ -1274,7 +1307,8 @@ $('#tpl-form').addEventListener('submit', async (e) => {
     cfg.button.url = $('#t-btnUrl').value.trim();
     cfg.required = $$('#t-required input:checked').map((i) => i.value);
 
-    // Логотип
+    // Логотип (файл уходит тем же коммитом, что и настройки шаблона)
+    const tplFiles = [];
     const logoHeight = Math.max(20, Math.min(60, parseInt($('#t-logo-height').value, 10) || 32));
     if (!$('#t-logo-enabled').checked) {
       cfg.logo = null;
@@ -1285,8 +1319,7 @@ $('#tpl-form').addEventListener('submit', async (e) => {
         src = state.pendingLogo.dataUrl;
       } else {
         src = `assets/logos/${tpl.id}.png`;
-        const bytes = new Uint8Array(await state.pendingLogo.blob.arrayBuffer());
-        await state.store.putFile(src, bytes, `Логотип шаблона: ${tpl.name}`);
+        tplFiles.push({ path: src, content: new Uint8Array(await state.pendingLogo.blob.arrayBuffer()) });
       }
       cfg.logo = {
         src,
@@ -1304,7 +1337,14 @@ $('#tpl-form').addEventListener('submit', async (e) => {
       cfg.logo.alt = tpl.name;
     }
 
-    await saveTemplates(`${isNew ? 'Создан' : 'Обновлён'} шаблон: ${tpl.name}`);
+    const tplSnapshot = JSON.parse(JSON.stringify(tpl));
+    await applyChanges(`${isNew ? 'Создан' : 'Обновлён'} шаблон: ${tpl.name}`, {
+      templates: (list) => {
+        const idx = list.findIndex((x) => x.id === tplSnapshot.id);
+        if (idx >= 0) list[idx] = tplSnapshot; else list.push(tplSnapshot);
+      },
+      files: tplFiles,
+    });
     renderTemplatesTab();
     renderEmployees();
     $('#modal-tpl').classList.add('hidden');
@@ -1323,8 +1363,12 @@ $('#tpl-delete').addEventListener('click', async () => {
   const btn = $('#tpl-delete');
   busy(btn, true, 'Удаляю…');
   try {
-    state.templates = state.templates.filter((t) => t.id !== tpl.id);
-    await saveTemplates(`Удалён шаблон: ${tpl.name}`);
+    await applyChanges(`Удалён шаблон: ${tpl.name}`, {
+      templates: (list) => {
+        const idx = list.findIndex((x) => x.id === tpl.id);
+        if (idx >= 0) list.splice(idx, 1);
+      },
+    });
     renderTemplatesTab();
     $('#modal-tpl').classList.add('hidden');
     toast('Шаблон удалён.');
@@ -1835,31 +1879,31 @@ $('#my-form').addEventListener('submit', async (e) => {
     emp.signatures = state.mySigs.map((s) => ({ ...s, email: (s.email || '').trim() || emp.loginEmail }));
 
     let photoUploaded = false;
+    const myFiles = [];
     if (state.pendingPhoto) {
       if (state.store.isDev) {
         emp.photo = state.pendingPhoto.dataUrl;
       } else {
         const path = `assets/photos/${emp.id}.jpg`;
-        const bytes = new Uint8Array(await state.pendingPhoto.blob.arrayBuffer());
-        await state.store.putFile(path, bytes, `Фото: ${emp.firstName} ${emp.lastName}`);
+        myFiles.push({ path, content: new Uint8Array(await state.pendingPhoto.blob.arrayBuffer()) });
         emp.photo = path;
         emp.photoVersion = (emp.photoVersion || 0) + 1;
         photoUploaded = true;
       }
     }
-    await mutateEmployees(`Сотрудник обновил данные: ${emp.firstName} ${emp.lastName}`, (list) => {
-      const idx = list.findIndex((x) => x.id === emp.id);
-      if (idx >= 0) list[idx] = emp; else list.push(emp);
-    });
-
-    // Синхронизация имени в записи пользователя
     const newName2 = `${emp.firstName} ${emp.lastName}`;
-    if (state.me.displayName !== newName2) {
-      await mutateUsers(`Обновлены данные входа: ${newName2}`, (fresh) => {
+    const nameChanged = state.me.displayName !== newName2;
+    await applyChanges(`Сотрудник обновил данные: ${newName2}`, {
+      employees: (list) => {
+        const idx = list.findIndex((x) => x.id === emp.id);
+        if (idx >= 0) list[idx] = emp; else list.push(emp);
+      },
+      users: nameChanged ? (fresh) => {
         const u = fresh.users.find((x) => x.id === state.me.id);
         if (u) u.displayName = newName2;
-      });
-    }
+      } : undefined,
+      files: myFiles,
+    });
     state.pendingPhoto = null;
     fillMy();
     toast(photoUploaded
