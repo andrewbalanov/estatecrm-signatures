@@ -323,25 +323,6 @@
         "iv": "xUrHqIB6fRZwjABv",
         "ct": "WQn4sYCDAmvv0zEKJ2j8rV+kZLc6JEiW6D2Hew1TorDChtfLl1o3kAy84QULSCyaK3c7OFv1eKdQTJBM"
       }
-    },
-    {
-      "id": "u-32f9345c",
-      "employeeId": "emp-4cdebe89",
-      "email": "atomic.test@estatecrm.io",
-      "displayName": "Тест Атомарный",
-      "role": "user",
-      "invite": {
-        "salt": "r+Pyp+427pWvGtuJmybkuw==",
-        "verifier": "TVbpyF8g2Eo8OPDoTgY0E6ZNMzIECJdwXf+OAslTIGI=",
-        "encDataKey": {
-          "v": 1,
-          "alg": "AES-256-GCM",
-          "iv": "IDHi5H6pGa7gi7A4",
-          "ct": "XAhBVOVMjqNdZj3vCgUGgWvUKeR/WgZw5VL7FfMIknT3/6GEbYXlx1opmbG4B882pzRM7pMBQJ3qjqvC"
-        },
-        "createdAt": "2026-08-07"
-      },
-      "invitedAt": "2026-08-07"
     }
   ],
   "encToken": {
